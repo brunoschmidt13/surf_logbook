@@ -205,14 +205,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .logo-area {
             text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-main {
             font-size: 26px;
             font-weight: bold;
             color: #0084b4;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
+                line-height: 1;
+        }
+
+        .logo-sub {
+            margin-top: 4px;
+            margin-left: 12px; /* desloca para a direita */
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: 7px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 1;
         }
 
         .tabs {
@@ -333,7 +344,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="form-column">
             <div class="login-card">
-                <div class="logo-area">🌊 SurfLog</div>
+                <div class="logo-area">
+                <div class="logo-main">🌊 The Surf</div>
+                <div class="logo-sub">CHRONICLES</div>
+        </div>
 
                 <?php if (!empty($erro)): ?>
                     <div class="msg msg-error"><?= $erro ?></div>
