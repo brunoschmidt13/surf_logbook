@@ -79,8 +79,29 @@ $sessoes = $stmt_sessoes->fetchAll();
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; color: #1e293b; }
         
-        .navbar { background-color: #ffffff; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; }
-        .logo { font-size: 20px; font-weight: bold; color: #0084b4; display: flex; align-items: center; gap: 8px; }
+        .navbar { background-color: #ffffff; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; }
+        .logo {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .logo-dash {
+            font-size: 26px;
+            font-weight: bold;
+            color: #0084b4;
+            line-height: 1;
+        }
+
+        .logo-dash-sub {
+            margin-top: 4px;
+            font-size: 12px;
+            margin-left: 12px;
+            font-weight: 400;
+            letter-spacing: 7px;
+            text-transform: uppercase;
+            color: rgba(44, 41, 41, 0.55);
+            line-height: 1;
+        }
         .user-menu { display: flex; align-items: center; gap: 20px; font-size: 14px; }
         .logout-btn { color: #64748b; text-decoration: none; font-weight: 500; }
         .logout-btn:hover { color: #ef4444; }
@@ -142,7 +163,10 @@ $sessoes = $stmt_sessoes->fetchAll();
 <body>
 
     <div class="navbar">
-        <div class="logo">🌊 SurfLog</div>
+        <div class="logo">
+        <div class="logo-dash">🌊 The Surf</div>
+        <div class="logo-dash-sub">CHRONICLES</div>
+</div>
         <div class="user-menu">
             <?php
             $stmt_check = $pdo->prepare("SELECT is_admin FROM usuarios WHERE id = ?");
