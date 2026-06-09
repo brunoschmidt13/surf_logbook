@@ -4,118 +4,72 @@
  * FILE: index.php
  * PURPOSE: Página de Login e Cadastro - Porta de entrada do SurfLog
  * ====================================================================
- * 
- * Esta página serve como o ponto de entrada da aplicação SurfLog.
- * Fornece duas funcionalidades principais:
- * 1. Login para usuários existentes
- * 2. Cadastro de novos usuários
- * 
- * A página implementa:
- * - Sistema de autenticação seguro com hash de senha (PASSWORD_DEFAULT)
- * - Validação de entrada (email, nome)
- * - Proteção contra SQL Injection (usando prepared statements)
- * - Sistema de sessões PHP para manter usuário logado
- * - Design responsivo com Glassmorphism
- * - Interface com abas (Login/Cadastro)
  */
 
-// Importa o arquivo de configuração com a conexão do banco de dados
 require_once 'config/conexao.php';
-
-// Inicia a sessão do usuário (necessário para armazenar dados entre páginas)
 session_start();
 
-// Se o usuário já está logado (tem um ID de sessão), redireciona diretamente para o dashboard
+// Se o usuário já está logado, redireciona diretamente para o dashboard
 if (isset($_SESSION['usuario_id'])) {
     header("Location: dashboard.php");
-    exit; // Para a execução aqui
+    exit;
 }
 
-// Inicializa variáveis de mensagem de erro e sucesso
 $erro = '';
 $sucesso = '';
 
-// Verifica se uma requisição POST foi enviada (formulário preenchido)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Obtém o tipo de ação: 'cadastrar' ou 'login'
     $acao = $_POST['acao'] ?? '';
 
     // ============= BLOCO DE CADASTRO =============
     if ($acao === 'cadastrar') {
-        // Sanitiza o nome removendo caracteres especiais perigosos
         $nome = filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS);
-        
-        // Valida se o email tem formato correto
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        
-        // Obtém a senha sem filtro (será hasheada mais abaixo)
         $senha = $_POST['senha'];
 
-        // Verifica se os três campos foram preenchidos corretamente
         if ($nome && $email && $senha) {
-            // Cria um hash seguro da senha usando o algoritmo mais recente do PHP
-            // PASSWORD_DEFAULT = bcrypt (mais seguro que md5 ou sha1)
             $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
             
             try {
-                // Prepara uma consulta INSERT com placeholders (?) para segurança
                 $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
-                
-                // Executa a query substituindo os placeholders pelos valores reais
                 $stmt->execute([$nome, $email, $senha_hash]);
-                
-                // Se inseriu com sucesso, exibe mensagem de sucesso
                 $sucesso = "Conta criada com sucesso! Faça o login.";
             } catch (PDOException $e) {
-                // Se o email já existe no banco, captura o erro PDO e exibe mensagem amigável
                 $erro = "Este e-mail já está cadastrado.";
             }
         } else {
-            // Se algum campo falhou na validação
             $erro = "Preencha todos os campos corretamente.";
         }
     } 
     
     // ============= BLOCO DE LOGIN =============
     if ($acao === 'login') {
-        // Valida se o email tem formato correto
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        
-        // Obtém a senha digitada pelo usuário
         $senha = $_POST['senha'];
 
-        // Verifica se email e senha foram preenchidos
         if ($email && $senha) {
-            // Prepara uma consulta para buscar o usuário pelo email
             $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
-            
-            // Executa a query
             $stmt->execute([$email]);
-            
-            // Obtém o primeiro resultado (se existir)
             $usuario = $stmt->fetch();
 
-            // Verifica se o usuário existe E se a senha corresponde ao hash armazenado
             if ($usuario && password_verify($senha, $usuario['senha'])) {
-                // Login bem-sucedido: armazena dados na sessão
-                $_SESSION['usuario_id'] = $usuario['id'];     // ID do usuário
-                $_SESSION['usuario_nome'] = $usuario['nome'];  // Nome do usuário
-                
-                // Redireciona para o dashboard
+                $_SESSION['usuario_id'] = $usuario['id'];
+                $_SESSION['usuario_nome'] = $usuario['nome'];
+
+                // Ativa o informativo flutuante exclusivo para o primeiro carregamento pós-login
+                $_SESSION['mostrar_aviso'] = true;
+
                 header("Location: dashboard.php");
-                exit; // Para a execução aqui
+                exit;
             } else {
-                // Se usuário não existe ou senha está errada
                 $erro = "E-mail ou senha incorretos.";
             }
         } else {
-            // Se email não foi validado como email válido
             $erro = "Por favor, insira um e-mail válido.";
         }
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -124,245 +78,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>TheSurfChronicles - Welcome</title>
     <style>
         html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
+            margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #0f172a;
         }
-
-        /* PLANO DE FUNDO COM BORDA OPACA */
         .bg-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1;
-            background-image: url('img/login_img.avif');
-            background-size: cover;
-            background-position: center;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1;
+            background-image: url('img/login_img.avif'); background-size: cover; background-position: center;
             filter: blur(6px) scale(1.02); 
         }
-
         .bg-container::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle, transparent 30%, rgba(15, 23, 42, 0.85) 95%);
             pointer-events: none;
         }
-
-        /* ESTRUTURA DE DUAS COLUNAS */
         .main-wrapper {
-            position: relative;
-            z-index: 10;
-            width: 100%;
-            height: 100%;
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr; /* Lado esquerdo ligeiramente maior */
-            box-sizing: border-box;
+            position: relative; z-index: 10; width: 100%; height: 100%;
+            display: grid; grid-template-columns: 1.2fr 0.8fr; box-sizing: border-box;
         }
-
-        /* COLUNA ESQUERDA: TEXTOS INSTITUCIONAIS */
-        .info-column {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 0 10%;
-            color: #ffffff;
-        }
-
-        .info-tag {
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 700;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 10px;
-        }
-
-        .info-title {
-            font-size: 54px;
-            font-weight: 800;
-            line-height: 1.1;
-            margin: 0 0 20px 0;
-            color: #ffffff;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-
-        .info-subtitle {
-            font-size: 18px;
-            line-height: 1.6;
-            color: rgba(255, 255, 255, 0.85);
-            margin-bottom: 40px;
-            max-width: 500px;
-        }
-
-        /* GRID DOS CARDS DE RECURSOS */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            max-width: 650px;
-        }
-
-        .feature-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            padding: 20px;
-            border-radius: 12px;
-        }
-
-        .feature-icon {
-            font-size: 20px;
-            margin-bottom: 12px;
-        }
-
-        .feature-card h3 {
-            margin: 0 0 6px 0;
-            font-size: 15px;
-            color: #ffffff;
-            font-weight: 600;
-        }
-
-        .feature-card p {
-            margin: 0;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.7);
-            line-height: 1.4;
-        }
-
-        /* COLUNA DIREITA: FORMULÁRIO */
-        .form-column {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding-right: 15%;
-        }
-
-        /* CAIXA DO FORMULÁRIO TRANSPARENTE (GLASSMORPHISM) */
+        .info-column { display: flex; flex-direction: column; justify-content: center; padding: 0 10%; color: #ffffff; }
+        .info-tag { font-size: 13px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; color: rgba(255, 255, 255, 0.7); margin-bottom: 10px; }
+        .info-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin: 0 0 20px 0; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .info-subtitle { font-size: 18px; line-height: 1.6; color: rgba(255, 255, 255, 0.85); margin-bottom: 40px; max-width: 500px; }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 650px; }
+        .feature-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.15); padding: 20px; border-radius: 12px; }
+        .feature-icon { font-size: 20px; margin-bottom: 12px; }
+        .feature-card h3 { margin: 0 0 6px 0; font-size: 15px; font-weight: 600; }
+        .feature-card p { margin: 0; font-size: 12px; color: rgba(255, 255, 255, 0.7); line-height: 1.4; }
+        .form-column { display: flex; justify-content: center; align-items: center; padding-right: 15%; }
         .login-card {
-            background: rgba(255, 255, 255, 0.45); 
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            padding: 40px 35px;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 380px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            padding: 40px 35px; border-radius: 16px; width: 100%; max-width: 380px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.35); box-sizing: border-box;
         }
-
-        .logo-area {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .logo-main {
-            font-size: 26px;
-            font-weight: bold;
-            color: #0084b4;
-                line-height: 1;
-        }
-
-        .logo-sub {
-            margin-top: 4px;
-            margin-left: 12px; /* desloca para a direita */
-            font-size: 12px;
-            font-weight: 400;
-            letter-spacing: 7px;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.55);
-            line-height: 1;
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid rgba(0, 0, 0, 0.08);
-            margin-bottom: 25px;
-        }
-        
-        .tab-btn {
-            flex: 1;
-            text-align: center;
-            padding: 10px 0;
-            background: none;
-            border: none;
-            font-size: 15px;
-            font-weight: 600;
-            color: #475569;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .tab-btn.active {
-            color: #0084b4;
-            border-bottom: 2px solid #0084b4;
-            margin-bottom: -2px;
-        }
-
+        .logo-area { text-align: center; margin-bottom: 30px; }
+        .logo-main { font-size: 26px; font-weight: bold; color: #0084b4; line-height: 1; }
+        .logo-sub { margin-top: 4px; margin-left: 12px; font-size: 12px; letter-spacing: 7px; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); line-height: 1; }
+        .tabs { display: flex; border-bottom: 2px solid rgba(0, 0, 0, 0.08); margin-bottom: 25px; }
+        .tab-btn { flex: 1; text-align: center; padding: 10px 0; background: none; border: none; font-size: 15px; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s ease; }
+        .tab-btn.active { color: #0084b4; border-bottom: 2px solid #0084b4; margin-bottom: -2px; }
         .form-content { display: none; }
         .form-content.active { display: block; }
-
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #0f172a;
-            margin-bottom: 6px;
-        }
-        
-        input {
-            width: 100%;
-            padding: 11px;
-            margin-bottom: 18px;
-            border: 1px solid rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 14px;
-            background: rgba(255, 255, 255, 0.75);
-            color: #0f172a;
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: #0084b4;
-            background: #ffffff;
-        }
-
-        .btn-submit {
-            width: 100%;
-            background-color: #0084b4;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+        label { display: block; font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 6px; }
+        input { width: 100%; padding: 11px; margin-bottom: 18px; border: 1px solid rgba(0, 0, 0, 0.15); border-radius: 8px; box-sizing: border-box; font-size: 14px; background: rgba(255, 255, 255, 0.75); color: #0f172a; }
+        input:focus { outline: none; border-color: #0084b4; background: #ffffff; }
+        .btn-submit { width: 100%; background-color: #0084b4; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
         .btn-submit:hover { background-color: #006b93; }
-
-        .msg {
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
+        .msg { padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; text-align: center; }
         .msg-error { background-color: #fee2e2; color: #ef4444; }
         .msg-success { background-color: #dcfce7; color: #22c55e; }
 
-        /* Responsividade básica para telas menores */
         @media (max-width: 1024px) {
             .main-wrapper { grid-template-columns: 1fr; overflow-y: auto; }
             .info-column { padding: 40px 20px; align-items: center; text-align: center; }
@@ -376,7 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="bg-container"></div>
 
     <div class="main-wrapper">
-        
         <div class="info-column">
             <div class="info-tag">A Minimal Surf Logbook</div>
             <h1 class="info-title">Every session.<br>Every wave.</h1>
@@ -404,9 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="form-column">
             <div class="login-card">
                 <div class="logo-area">
-                <div class="logo-main">🌊 The Surf</div>
-                <div class="logo-sub">CHRONICLES</div>
-        </div>
+                    <div class="logo-main">🌊 The Surf</div>
+                    <div class="logo-sub">CHRONICLES</div>
+                </div>
 
                 <?php if (!empty($erro)): ?>
                     <div class="msg msg-error"><?= $erro ?></div>
@@ -452,7 +216,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -469,6 +232,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </script>
-
 </body>
 </html>
