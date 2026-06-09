@@ -157,8 +157,8 @@ $sessoes = $stmt_sessoes->fetchAll();
             <h2>Novidades no SurfLog!</h2>
             <p>
                 Fala, mestre! Atualizamos o sistema. Agora você pode cadastrar a 
-                <strong>Altura da Onda</strong> e o <strong>Período (s)</strong> em cada sessão, 
-                além de acompanhar novos recordes direto no seu painel.
+                <strong>Altura da Onda</strong> e o <strong>Período</strong> em cada sessão, 
+                além de acompanhar novos recordes direto no seu painel. Aloha e boas ondas! 🌊🤙
             </p>
             <button class="btn-vamos-la" onclick="fecharInformativo()">Vamos lá</button>
         </div>
