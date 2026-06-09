@@ -1,47 +1,95 @@
 <?php
-// admin_pranchas.php
+/**
+ * ====================================================================
+ * FILE: admin_pranchas.php
+ * PURPOSE: Gerenciar Pranchas de um Usuário Específico
+ * ====================================================================
+ * 
+ * Este página permite ao admin visualizar TODAS as pranchas de um
+ * usuário específico e deletá-las se necessário.
+ * 
+ * Fluxo:
+ * 1. Admin clica em "Pranchas" de um usuário em admin.php
+ * 2. É redirecionado para admin_pranchas.php?usuario_id=123
+ * 3. Vê todas as pranchas daquele usuário
+ * 4. Pode deletar pranchas individuais
+ * 
+ * SEGURANÇA: Requer ser admin E fornecer ID válido do usuário
+ */
+
+// Importa a conexão com o banco de dados
 require_once 'config/conexao.php';
+
+// Inicia a sessão para verificar permissões
 session_start();
 
-// Verificação de Admin
-if (!isset($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
+// ============= VERIFICAÇÃO DE ACESSO - PROTEÇÃO 1 =============
+// Verifica se o usuário está logado
+if (!isset($_SESSION['usuario_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+// Busca informações do usuário logado para verificar se é admin
 $stmt = $pdo->prepare("SELECT is_admin FROM usuarios WHERE id = ?");
 $stmt->execute([$_SESSION['usuario_id']]);
 $user_atual = $stmt->fetch();
-if (!$user_atual || $user_atual['is_admin'] != 1) { header("Location: dashboard.php"); exit; }
 
-// Capturar ID do usuário alvo
+// Se não é admin, redireciona
+if (!$user_atual || $user_atual['is_admin'] != 1) {
+    header("Location: dashboard.php");
+    exit;
+}
+
+// ============= VALIDAR ID DO USUÁRIO ALVO =============
+// Obtém e valida o ID do usuário cujas pranchas queremos ver
 $usuario_alvo_id = filter_input(INPUT_GET, 'usuario_id', FILTER_VALIDATE_INT);
-if (!$usuario_alvo_id) { header("Location: admin.php"); exit; }
 
-// Buscar dados do dono das pranchas
+// Se o ID não é válido, redireciona para admin.php
+if (!$usuario_alvo_id) {
+    header("Location: admin.php");
+    exit;
+}
+
+// ============= BUSCAR DADOS DO USUÁRIO ALVO =============
+// Obtém o nome do usuário para exibir no título da página
 $stmt_user = $pdo->prepare("SELECT nome FROM usuarios WHERE id = ?");
 $stmt_user->execute([$usuario_alvo_id]);
 $usuario_alvo = $stmt_user->fetch();
 
-// Deletar prancha se solicitado pelo admin
+// ============= DELETAR PRANCHA SE SOLICITADO =============
+// Verifica se há parâmetro de deleção na URL
 if (isset($_GET['deletar_prancha'])) {
+    // Obtém e valida o ID da prancha a deletar
     $prancha_id = filter_input(INPUT_GET, 'deletar_prancha', FILTER_VALIDATE_INT);
     
+    // Inicia uma transação para garantir consistência dos dados
     $pdo->beginTransaction();
     try {
-        // Desvincular sessões que usavam essa prancha (coloca null nelas)
+        // PASSO 1: Desvincula a prancha de todas as sessões que a usavam
+        // Coloca NULL no campo prancha_id das sessões
         $stmt_null = $pdo->prepare("UPDATE sessoes SET prancha_id = NULL WHERE prancha_id = ?");
         $stmt_null->execute([$prancha_id]);
         
-        // Deletar prancha
+        // PASSO 2: Deleta a prancha
+        // Verifica dupla segurança: ID da prancha E ID do proprietário
         $stmt_del = $pdo->prepare("DELETE FROM pranchas WHERE id = ? AND usuario_id = ?");
         $stmt_del->execute([$prancha_id, $usuario_alvo_id]);
         
+        // Confirma a transação
         $pdo->commit();
+        
+        // Redireciona para recarregar a página sem a prancha deletada
         header("Location: admin_pranchas.php?usuario_id=" . $usuario_alvo_id);
         exit;
     } catch (Exception $e) {
+        // Se houver erro, desfaz tudo
         $pdo->rollBack();
     }
 }
 
-// Buscar pranchas do usuário alvo
+// ============= BUSCAR TODAS AS PRANCHAS DO USUÁRIO =============
+// Busca todas as pranchas do usuário alvo ordenadas alfabeticamente
 $stmt_pranchas = $pdo->prepare("SELECT * FROM pranchas WHERE usuario_id = ? ORDER BY modelo ASC");
 $stmt_pranchas->execute([$usuario_alvo_id]);
 $pranchas = $stmt_pranchas->fetchAll();

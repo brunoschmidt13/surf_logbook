@@ -1,26 +1,58 @@
 <?php
-// admin.php
+/**
+ * ====================================================================
+ * FILE: admin.php
+ * PURPOSE: Painel Principal de Administração - Controle de Usuários
+ * ====================================================================
+ * 
+ * Este é o painel principal para administradores do SurfLog.
+ * Fornece:
+ * 1. Lista de TODOS os usuários do sistema
+ * 2. Visualizar informações de cada usuário (nome, email, nível)
+ * 3. Acessar dados de pranchas de cada usuário
+ * 4. Acessar histórico de sessões de cada usuário
+ * 5. Promover/Rebaixar usuários (Admin <-> Comum)
+ * 6. Deletar usuários completamente
+ * 
+ * SEGURANÇA: Apenas usuários com is_admin = 1 podem acessar
+ */
+
+// Importa a conexão com o banco de dados
 require_once 'config/conexao.php';
+
+// Inicia a sessão para verificar se o usuário está logado
 session_start();
 
-// PROTEÇÃO DE ACESSO
+// ============= VERIFICAÇÃO DE ACESSO (PROTEÇÃO 1) =============
+// Verifica se o usuário está logado (tem ID na sessão)
 if (!isset($_SESSION['usuario_id'])) {
+    // Se não está logado, redireciona para login
     header("Location: index.php");
     exit;
 }
 
+// ============= VERIFICAÇÃO DE PERMISSÃO (PROTEÇÃO 2) =============
+// Busca informações do usuário logado para verificar se é admin
 $stmt = $pdo->prepare("SELECT is_admin FROM usuarios WHERE id = ?");
 $stmt->execute([$_SESSION['usuario_id']]);
 $user_atual = $stmt->fetch();
 
+// Se o usuário não existe ou não é admin (is_admin != 1)
 if (!$user_atual || $user_atual['is_admin'] != 1) {
+    // Redireciona para o dashboard normal
     header("Location: dashboard.php");
     exit;
 }
 
-// BUSCAR TODOS OS USUÁRIOS (Menos o admin logado)
+// ============= BUSCAR TODOS OS USUÁRIOS =============
+// Prepara uma query para buscar TODOS os usuários EXCETO o admin logado
+// Ordena alfabeticamente por nome
 $stmt_usuarios = $pdo->prepare("SELECT id, nome, email, is_admin FROM usuarios WHERE id != ? ORDER BY nome ASC");
+
+// Executa a query passando o ID do admin logado (para excluir dele mesmo)
 $stmt_usuarios->execute([$_SESSION['usuario_id']]);
+
+// Obtém todos os resultados como um array de usuarios
 $usuarios = $stmt_usuarios->fetchAll();
 ?>
 

@@ -1,34 +1,83 @@
 <?php
-// admin_sessoes.php
+/**
+ * ====================================================================
+ * FILE: admin_sessoes.php
+ * PURPOSE: Visualizar e Gerenciar Sessões de Surf de um Usuário
+ * ====================================================================
+ * 
+ * Esta página permite ao admin:
+ * 1. Ver TODAS as sessões de surf de um usuário específico
+ * 2. Visualizar detalhes completos de cada sessão
+ * 3. Deletar sessões individuais do histórico
+ * 
+ * Fluxo:
+ * 1. Admin clica em "Sessões" de um usuário em admin.php
+ * 2. É redirecionado para admin_sessoes.php?usuario_id=123
+ * 3. Vê tabela com histórico de todas as sessões daquele usuário
+ * 4. Pode deletar sessões pela ação na tabela
+ * 
+ * SEGURANÇA: Requer ser admin E fornecer ID válido do usuário
+ */
+
+// Importa a conexão com o banco de dados
 require_once 'config/conexao.php';
+
+// Inicia a sessão para verificar permissões
 session_start();
 
-// Verificação de Admin
-if (!isset($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
+// ============= VERIFICAÇÃO DE ACESSO - PROTEÇÃO 1 =============
+// Verifica se o usuário está logado
+if (!isset($_SESSION['usuario_id'])) {
+    header("Location: index.php");
+    exit;
+}
+
+// Busca informações do usuário logado para verificar se é admin
 $stmt = $pdo->prepare("SELECT is_admin FROM usuarios WHERE id = ?");
 $stmt->execute([$_SESSION['usuario_id']]);
 $user_atual = $stmt->fetch();
-if (!$user_atual || $user_atual['is_admin'] != 1) { header("Location: dashboard.php"); exit; }
 
-// Capturar ID do usuário alvo
+// Se não é admin, redireciona
+if (!$user_atual || $user_atual['is_admin'] != 1) {
+    header("Location: dashboard.php");
+    exit;
+}
+
+// ============= VALIDAR ID DO USUÁRIO ALVO =============
+// Obtém e valida o ID do usuário cujas sessões queremos ver
 $usuario_alvo_id = filter_input(INPUT_GET, 'usuario_id', FILTER_VALIDATE_INT);
-if (!$usuario_alvo_id) { header("Location: admin.php"); exit; }
 
-// Buscar dados do dono das sessões
+// Se o ID não é válido, redireciona para admin.php
+if (!$usuario_alvo_id) {
+    header("Location: admin.php");
+    exit;
+}
+
+// ============= BUSCAR DADOS DO USUÁRIO ALVO =============
+// Obtém o nome do usuário para exibir no título
 $stmt_user = $pdo->prepare("SELECT nome FROM usuarios WHERE id = ?");
 $stmt_user->execute([$usuario_alvo_id]);
 $usuario_alvo = $stmt_user->fetch();
 
-// Deletar sessão se solicitado pelo admin
+// ============= DELETAR SESSÃO SE SOLICITADO =============
+// Verifica se há parâmetro de deleção na URL
 if (isset($_GET['deletar_sessao'])) {
+    // Obtém e valida o ID da sessão a deletar
     $sessao_id = filter_input(INPUT_GET, 'deletar_sessao', FILTER_VALIDATE_INT);
+    
+    // Deleta a sessão (verifica dupla segurança: ID da sessão E ID do proprietário)
     $stmt_del = $pdo->prepare("DELETE FROM sessoes WHERE id = ? AND usuario_id = ?");
     $stmt_del->execute([$sessao_id, $usuario_alvo_id]);
+    
+    // Redireciona para recarregar a página sem a sessão deletada
     header("Location: admin_sessoes.php?usuario_id=" . $usuario_alvo_id);
     exit;
 }
 
-// Buscar sessões combinando os dados com o modelo da prancha utilizada
+// ============= BUSCAR TODAS AS SESSÕES DO USUÁRIO =============
+// Busca todas as sessões combinando dados com o modelo da prancha utilizada
+// LEFT JOIN permite exibir sessões mesmo que a prancha tenha sido deletada
+// Ordena por data da sessão (mais recente primeiro)
 $stmt_sessoes = $pdo->prepare("
     SELECT s.*, p.modelo AS prancha_nome 
     FROM sessoes s 

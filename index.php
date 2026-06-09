@@ -1,56 +1,115 @@
 <?php
-// index.php
+/**
+ * ====================================================================
+ * FILE: index.php
+ * PURPOSE: Página de Login e Cadastro - Porta de entrada do SurfLog
+ * ====================================================================
+ * 
+ * Esta página serve como o ponto de entrada da aplicação SurfLog.
+ * Fornece duas funcionalidades principais:
+ * 1. Login para usuários existentes
+ * 2. Cadastro de novos usuários
+ * 
+ * A página implementa:
+ * - Sistema de autenticação seguro com hash de senha (PASSWORD_DEFAULT)
+ * - Validação de entrada (email, nome)
+ * - Proteção contra SQL Injection (usando prepared statements)
+ * - Sistema de sessões PHP para manter usuário logado
+ * - Design responsivo com Glassmorphism
+ * - Interface com abas (Login/Cadastro)
+ */
+
+// Importa o arquivo de configuração com a conexão do banco de dados
 require_once 'config/conexao.php';
+
+// Inicia a sessão do usuário (necessário para armazenar dados entre páginas)
 session_start();
 
+// Se o usuário já está logado (tem um ID de sessão), redireciona diretamente para o dashboard
 if (isset($_SESSION['usuario_id'])) {
     header("Location: dashboard.php");
-    exit;
+    exit; // Para a execução aqui
 }
 
+// Inicializa variáveis de mensagem de erro e sucesso
 $erro = '';
 $sucesso = '';
 
+// Verifica se uma requisição POST foi enviada (formulário preenchido)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Obtém o tipo de ação: 'cadastrar' ou 'login'
     $acao = $_POST['acao'] ?? '';
 
+    // ============= BLOCO DE CADASTRO =============
     if ($acao === 'cadastrar') {
+        // Sanitiza o nome removendo caracteres especiais perigosos
         $nome = filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS);
+        
+        // Valida se o email tem formato correto
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+        
+        // Obtém a senha sem filtro (será hasheada mais abaixo)
         $senha = $_POST['senha'];
 
+        // Verifica se os três campos foram preenchidos corretamente
         if ($nome && $email && $senha) {
+            // Cria um hash seguro da senha usando o algoritmo mais recente do PHP
+            // PASSWORD_DEFAULT = bcrypt (mais seguro que md5 ou sha1)
             $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+            
             try {
+                // Prepara uma consulta INSERT com placeholders (?) para segurança
                 $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
+                
+                // Executa a query substituindo os placeholders pelos valores reais
                 $stmt->execute([$nome, $email, $senha_hash]);
+                
+                // Se inseriu com sucesso, exibe mensagem de sucesso
                 $sucesso = "Conta criada com sucesso! Faça o login.";
             } catch (PDOException $e) {
+                // Se o email já existe no banco, captura o erro PDO e exibe mensagem amigável
                 $erro = "Este e-mail já está cadastrado.";
             }
         } else {
+            // Se algum campo falhou na validação
             $erro = "Preencha todos os campos corretamente.";
         }
     } 
     
+    // ============= BLOCO DE LOGIN =============
     if ($acao === 'login') {
+        // Valida se o email tem formato correto
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+        
+        // Obtém a senha digitada pelo usuário
         $senha = $_POST['senha'];
 
+        // Verifica se email e senha foram preenchidos
         if ($email && $senha) {
+            // Prepara uma consulta para buscar o usuário pelo email
             $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
+            
+            // Executa a query
             $stmt->execute([$email]);
+            
+            // Obtém o primeiro resultado (se existir)
             $usuario = $stmt->fetch();
 
+            // Verifica se o usuário existe E se a senha corresponde ao hash armazenado
             if ($usuario && password_verify($senha, $usuario['senha'])) {
-                $_SESSION['usuario_id'] = $usuario['id'];
-                $_SESSION['usuario_nome'] = $usuario['nome'];
+                // Login bem-sucedido: armazena dados na sessão
+                $_SESSION['usuario_id'] = $usuario['id'];     // ID do usuário
+                $_SESSION['usuario_nome'] = $usuario['nome'];  // Nome do usuário
+                
+                // Redireciona para o dashboard
                 header("Location: dashboard.php");
-                exit;
+                exit; // Para a execução aqui
             } else {
+                // Se usuário não existe ou senha está errada
                 $erro = "E-mail ou senha incorretos.";
             }
         } else {
+            // Se email não foi validado como email válido
             $erro = "Por favor, insira um e-mail válido.";
         }
     }
@@ -62,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SurfLog - Welcome</title>
+    <title>TheSurfChronicles - Welcome</title>
     <style>
         html, body {
             margin: 0;

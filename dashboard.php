@@ -1,38 +1,82 @@
 <?php
-// dashboard.php
+/**
+ * ====================================================================
+ * FILE: dashboard.php
+ * PURPOSE: Dashboard Principal do Usuário - Visualizar Logbook de Surf
+ * ====================================================================
+ * 
+ * Esta é a página principal após o usuário fazer login.
+ * Fornece:
+ * 1. Estatísticas gerais (total de sessões, tempo na água, nota média)
+ * 2. Recordes pessoais (maior sessão, prancha favorita, maior onda)
+ * 3. Lista de pranchas do usuário
+ * 4. Histórico de todas as sessões de surf
+ * 5. Modais para adicionar novas pranchas e sessões
+ * 
+ * SEGURANÇA: Apenas usuários logados podem acessar
+ */
+
+// Importa a conexão com o banco de dados
 require_once 'config/conexao.php';
+
+// Inicia a sessão para verificar se o usuário está logado
 session_start();
 
+// ============= VERIFICAÇÃO DE ACESSO =============
+// Se o usuário não está logado (não tem ID na sessão)
 if (!isset($_SESSION['usuario_id'])) {
+    // Redireciona para o login
     header("Location: index.php");
     exit;
 }
 
+// ============= OBTER DADOS DO USUÁRIO LOGADO =============
+// Obtém o ID do usuário da sessão
 $usuario_id = $_SESSION['usuario_id'];
+
+// Obtém o nome completo do usuário da sessão
 $usuario_nome = $_SESSION['usuario_nome'];
 
+// Separa o nome completo em partes e pega o primeiro nome
+// Usado para saudação personalizada (ex: "Hi, Bruno")
 $partes_nome = explode(' ', $usuario_nome);
 $primeiro_nome = $partes_nome[0];
 
-// 1. BUSCAR ESTATÍSTICAS DO DASHBOARD (Gerais Acumuladas)
-$stmt = $pdo->prepare("SELECT COUNT(*) as total_sessoes, SUM(duracao_minutos) as total_minutos, AVG(nota) as media_nota FROM sessoes WHERE usuario_id = ?");
+// ============= 1. BUSCAR ESTATÍSTICAS GERAIS DO DASHBOARD =============
+// Estas são estatísticas acumuladas de TODAS as sessões do usuário
+$stmt = $pdo->prepare("
+    SELECT 
+        COUNT(*) as total_sessoes,           -- Quantas sessões no total
+        SUM(duracao_minutos) as total_minutos, -- Tempo total na água (em minutos)
+        AVG(nota) as media_nota              -- Nota média (1-5 estrelas)
+    FROM sessoes 
+    WHERE usuario_id = ?
+");
 $stmt->execute([$usuario_id]);
 $estatisticas = $stmt->fetch();
 
+// Atribui os resultados a variáveis (com valores padrão 0 se nulo)
 $total_sessoes = $estatisticas['total_sessoes'] ?? 0;
 $total_minutos = $estatisticas['total_minutos'] ?? 0;
 $media_nota = $estatisticas['media_nota'] ? number_format($estatisticas['media_nota'], 1, '.', '') : '0.0';
 
-// ==========================================
-// NOVAS CONSULTAS PARA OS CARDS DE RESUMO (Recordes e Preferências)
-// ==========================================
-// A) Sessão mais longa (Maior tempo na água)
-$stmt_longa = $pdo->prepare("SELECT MAX(duracao_minutos) as maior_tempo FROM sessoes WHERE usuario_id = ?");
+// ============= 2. BUSCAR RECORDES E PREFERÊNCIAS =============
+// Estas queries buscam dados interessantes sobre as sessões do usuário
+
+// A) Sessão mais longa (Maior tempo na água em uma única sessão)
+$stmt_longa = $pdo->prepare("
+    SELECT MAX(duracao_minutos) as maior_tempo 
+    FROM sessoes 
+    WHERE usuario_id = ?
+");
 $stmt_longa->execute([$usuario_id]);
 $sessao_longa = $stmt_longa->fetch();
 $maior_sessao = $sessao_longa['maior_tempo'] ?? 0;
 
-// B) Prancha mais utilizada (CORRIGIDO: usando LEFT JOIN para evitar crash se houver prancha nula)
+// B) Prancha mais utilizada (Qual prancha aparece mais nas sessões)
+// Usa LEFT JOIN para evitar crash se houver prancha nula
+// Agrupa por prancha e conta quantas vezes foi usada
+// Ordena por frequência e pega a primeira (mais usada)
 $stmt_prancha_top = $pdo->prepare("
     SELECT p.modelo, COUNT(s.id) as total_usos 
     FROM sessoes s
@@ -44,21 +88,30 @@ $stmt_prancha_top = $pdo->prepare("
 ");
 $stmt_prancha_top->execute([$usuario_id]);
 $prancha_top = $stmt_prancha_top->fetch();
+// Se não há pranchas usadas, exibe "Nenhuma ainda"
 $prancha_mais_usada = $prancha_top ? $prancha_top['modelo'] : "Nenhuma ainda";
 
-// C) Maior Onda Surfada (Cálculo matemático direto na nova coluna)
-$stmt_onda_top = $pdo->prepare("SELECT MAX(altura_onda) as maior_onda FROM sessoes WHERE usuario_id = ?");
+// C) Maior Onda Surfada (Altura máxima registrada)
+// Busca o valor máximo da coluna altura_onda
+$stmt_onda_top = $pdo->prepare("
+    SELECT MAX(altura_onda) as maior_onda 
+    FROM sessoes 
+    WHERE usuario_id = ?
+");
 $stmt_onda_top->execute([$usuario_id]);
 $onda_top = $stmt_onda_top->fetch();
 $maior_onda = $onda_top['maior_onda'] ?? 0.0;
 
-
-// 2. BUSCAR PRANCHAS DO USUÁRIO
+// ============= 3. BUSCAR PRANCHAS DO USUÁRIO =============
+// Obtém TODAS as pranchas cadastradas pelo usuário
 $stmt_pranchas = $pdo->prepare("SELECT * FROM pranchas WHERE usuario_id = ?");
 $stmt_pranchas->execute([$usuario_id]);
 $pranchas = $stmt_pranchas->fetchAll();
 
-// 3. BUSCAR SESSÕES DE SURF DO USUÁRIO
+// ============= 4. BUSCAR SESSÕES DE SURF DO USUÁRIO =============
+// Obtém TODAS as sessões do usuário combinadas com dados da prancha
+// LEFT JOIN permite exibir sessões mesmo que prancha tenha sido deletada
+// Ordena por data (mais recente primeiro) para cronologia lógica
 $stmt_sessoes = $pdo->prepare("
     SELECT s.*, p.modelo as prancha_modelo 
     FROM sessoes s 
@@ -75,7 +128,7 @@ $sessoes = $stmt_sessoes->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SurfLog - Dashboard</title>
+    <title>TheSurfChronicles - Dashboard</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f5f9; margin: 0; color: #1e293b; }
         
