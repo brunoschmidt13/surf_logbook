@@ -305,8 +305,8 @@ $sessoes = $stmt_sessoes->fetchAll();
                 <?php foreach($pranchas as $board): ?>
                     <div class="board-item">
                         <div class="board-info">
-                            <h3><?= htmlspecialchars($board['modelo']) ?></h3>
-                            <p><?= htmlspecialchars($board['medidas'] ?? '') ?></p>
+                        <h3><?= htmlspecialchars($board['marca']) ?> - <?= htmlspecialchars($board['modelo']) ?></h3>
+                        <p>Tamanho: <?= htmlspecialchars($board['tamanho'] ?? '') ?> | Volume: <?= htmlspecialchars($board['volume'] ?? '') ?>L</p>  
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -355,11 +355,27 @@ $sessoes = $stmt_sessoes->fetchAll();
             <span class="close-btn" onclick="fecharModalPrancha()">&times;</span>
             <h2 style="margin-top: 0; color: #0f172a; margin-bottom: 20px;">Nova Prancha</h2>
             <form action="salvar_prancha.php" method="POST" class="form-modal">
-                <label>Modelo / Marca</label>
-                <input type="text" name="modelo" placeholder="Ex: Simoes Funboard" required>
-                <label>Medidas / Volume</label>
-                <input type="text" name="medidas" placeholder="Ex: 7.11 X 21 X 52L">
-                <button type="submit" class="btn-primary" style="width: 100%; padding: 12px;">Salvar Prancha</button>
+                
+                <label>Modelo</label>
+                <input type="text" name="modelo" placeholder="Ex: SF3, Monsta Box, Pyzalien" required>
+                
+                <label>Marca</label>
+                <input type="text" name="marca" placeholder="Ex: Tokoro, JS Industries, Pyzel" required>
+                
+                <div class="form-grid" style="margin-bottom: 0;">
+                    <div>
+                        <label>Tamanho</label>
+                        <input type="text" name="tamanho" placeholder="Ex: 5'11" required>
+                    </div>
+                    <div>
+                        <label>Volume (Litros)</label>
+                        <input type="text" name="volume" placeholder="Ex: 29.5" required>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="medidas" value="">
+
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 12px; margin-top: 10px;">Salvar Prancha</button>
             </form>
         </div>
     </div>
