@@ -18,17 +18,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $estado          = $_POST['estado'];
     $cidade          = $_POST['cidade'];
     $praia           = $_POST['praia'];
-    $condicoes_onda  = $_POST['condicoes_onda'];
     $observacoes     = $_POST['observacoes'];
     $prancha_id      = !empty($_POST['prancha_id']) ? intval($_POST['prancha_id']) : null;
 
+    // NOVO: Capturando os novos campos numéricos de Altura e Período
+    // Usamos floatval para permitir números decimais (ex: 1.5) e intval para inteiros (ex: 11)
+    $altura_onda     = !empty($_POST['altura_onda']) ? floatval($_POST['altura_onda']) : null;
+    $periodo_onda    = !empty($_POST['periodo_onda']) ? intval($_POST['periodo_onda']) : null;
+
     if ($data_sessao && $duracao_minutos) {
-        // CORRIGIDO: Agora usa estritamente 'cidade' para casar com seu banco de dados
+        // CORRIGIDO: Removido 'condicoes_onda' e adicionado 'altura_onda' e 'periodo_onda'
         $stmt = $pdo->prepare("
-            INSERT INTO sessoes (usuario_id, prancha_id, data_sessao, duracao_minutos, nota, estado, cidade, praia, condicoes_onda, observacoes) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO sessoes (usuario_id, prancha_id, data_sessao, duracao_minutos, nota, estado, cidade, praia, altura_onda, periodo_onda, observacoes) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
-        $stmt->execute([$usuario_id, $prancha_id, $data_sessao, $duracao_minutos, $nota, $estado, $cidade, $praia, $condicoes_onda, $observacoes]);
+        
+        // No execute, passamos as novas variáveis na mesma ordem exata da query acima
+        $stmt->execute([
+            $usuario_id, 
+            $prancha_id, 
+            $data_sessao, 
+            $duracao_minutos, 
+            $nota, 
+            $estado, 
+            $cidade, 
+            $praia, 
+            $altura_onda,  // Nova coluna numérica
+            $periodo_onda, // Nova coluna numérica
+            $observacoes
+        ]);
     }
 }
 
