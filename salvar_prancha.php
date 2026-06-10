@@ -3,7 +3,7 @@
 require_once 'config/conexao.php';
 session_start();
 
-// Segurança: impede que quem não está logado envie dados
+// Security: prevents unauthenticated users from sending data
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
     exit;
@@ -12,19 +12,19 @@ if (!isset($_SESSION['usuario_id'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario_id = $_SESSION['usuario_id'];
     
-    // Captura os novos campos vindos do formulário
+    // Captures new fields from form
     $modelo  = trim($_POST['modelo']);
     $marca   = trim($_POST['marca']);
     $tamanho = trim($_POST['tamanho']);
     $volume  = trim($_POST['volume']);
     
-    // Para manter compatibilidade com alguma tela antiga, podemos preencher 
-    // a coluna 'medidas' juntando o tamanho e volume automaticamente
+    // To maintain compatibility with some old screen, we can fill
+    // 'medidas' column by joining size and volume automatically
     $medidas = $tamanho . " - " . $volume . "L";
 
     if (!empty($modelo) && !empty($marca)) {
         try {
-            // CORRIGIDO: Agora inserindo em todas as novas colunas do banco
+            // FIXED: Now inserting all new columns from database
             $stmt = $pdo->prepare("
                 INSERT INTO pranchas (usuario_id, modelo, marca, tamanho, volume, medidas) 
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -32,21 +32,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $stmt->execute([$usuario_id, $modelo, $marca, $tamanho, $volume, $medidas]);
             
-            // Sucesso! Redireciona de volta para o dashboard
+            // Success! Redirects back to dashboard
             header("Location: dashboard.php");
             exit;
             
         } catch (PDOException $e) {
-            // Se der erro no banco, mostra o que aconteceu (bom para fase de testes)
-            echo "Erro ao salvar no banco de dados: " . $e->getMessage();
+            // If database error, show what happened (good for testing phase)
+            echo "Error saving to database: " . $e->getMessage();
             exit;
         }
     } else {
-        echo "Por favor, preencha os campos obrigatórios (Modelo e Marca).";
+        echo "Please fill required fields (Model and Brand).";
         exit;
     }
 } else {
-    // Se tentarem acessar o arquivo direto sem ser via formulário, manda de volta
+    // If try to access file directly without form, send back
     header("Location: dashboard.php");
     exit;
 }

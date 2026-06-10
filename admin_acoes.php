@@ -2,109 +2,109 @@
 /**
  * ====================================================================
  * FILE: admin_acoes.php
- * PURPOSE: Executar Ações de Administração (Promover, Rebaixar, Deletar)
+ * PURPOSE: Execute Administration Actions (Promote, Demote, Delete)
  * ====================================================================
  * 
- * Este arquivo processa as ações do admin via GET parameters:
+ * This file processes admin actions via GET parameters:
  * 
- * Ações Suportadas:
- * 1. toggle_role: Alterna entre Admin e Usuário Comum
- * 2. delete_user: Deleta completamente o usuário e todos seus dados
- *    (pranchas, sessões, etc)
+ * Supported Actions:
+ * 1. toggle_role: Switches between Admin and Regular User
+ * 2. delete_user: Completely deletes user and all data
+ *    (boards, sessions, etc)
  * 
- * Formato das URLs:
+ * URL Format:
  * - admin_acoes.php?action=toggle_role&id=123
  * - admin_acoes.php?action=delete_user&id=123
  * 
- * SEGURANÇA: Todas as ações requerem que o usuário seja admin
+ * SECURITY: All actions require user to be admin
  */
 
-// Importa a conexão com o banco de dados
+// Imports database connection
 require_once 'config/conexao.php';
 
-// Inicia a sessão para verificar permissões
+// Starts session to verify permissions
 session_start();
 
-// ============= VERIFICAÇÃO DE SEGURANÇA MÁXIMA =============
-// Verifica se o usuário está logado (tem ID na sessão)
+// ============= MAXIMUM SECURITY VERIFICATION =============
+// Verifies if user is logged in (has ID in session)
 if (!isset($_SESSION['usuario_id'])) {
-    // Se não, redireciona para login
+    // If not, redirect to login
     header("Location: index.php");
     exit;
 }
 
-// Busca informações do usuário logado para verificar se é admin
+// Gets logged-in user information to verify if admin
 $stmt = $pdo->prepare("SELECT is_admin FROM usuarios WHERE id = ?");
 $stmt->execute([$_SESSION['usuario_id']]);
 $user_atual = $stmt->fetch();
 
-// Se o usuário não existe ou não é admin
+// If user doesn't exist or is not admin
 if (!$user_atual || $user_atual['is_admin'] != 1) {
-    // Redireciona para o dashboard
+    // Redirect to dashboard
     header("Location: dashboard.php");
     exit;
 }
 
-// ============= CAPTURA DOS PARÂMETROS DA URL =============
-// Obtém o parâmetro 'action' que especifica qual ação executar
+// ============= CAPTURE URL PARAMETERS =============
+// Gets 'action' parameter that specifies which action to execute
 $action = $_GET['action'] ?? '';
 
-// Obtém e valida o ID do usuário alvo (deve ser um inteiro)
+// Gets and validates target user ID (must be integer)
 $user_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
-// Verifica se ambos os parâmetros foram fornecidos
+// Verifies if both parameters were provided
 if ($user_id && $action) {
     
-    // ============= AÇÃO 1: ALTERNAR CARGO (ADMIN <-> USER) =============
+    // ============= ACTION 1: SWITCH ROLE (ADMIN <-> USER) =============
     if ($action === 'toggle_role') {
-        // Busca qual é o nível atual do usuário alvo
+        // Gets current level of target user
         $stmt = $pdo->prepare("SELECT is_admin FROM usuarios WHERE id = ?");
         $stmt->execute([$user_id]);
         $target_user = $stmt->fetch();
         
-        // Se o usuário existe
+        // If user exists
         if ($target_user) {
-            // Se é admin (1), muda para usuário comum (0)
-            // Se é usuário comum (0), muda para admin (1)
+            // If admin (1), changes to regular user (0)
+            // If regular user (0), changes to admin (1)
             $novo_cargo = $target_user['is_admin'] == 1 ? 0 : 1;
             
-            // Atualiza o banco com o novo cargo
+            // Updates database with new role
             $update = $pdo->prepare("UPDATE usuarios SET is_admin = ? WHERE id = ?");
             $update->execute([$novo_cargo, $user_id]);
         }
     }
 
-    // ============= AÇÃO 2: DELETAR USUÁRIO E TODOS OS DADOS =============
+    // ============= ACTION 2: DELETE USER AND ALL DATA =============
     if ($action === 'delete_user') {
-        // Iniciamos uma transação para garantir integridade dos dados
-        // Se tudo correr bem, confirma (commit)
-        // Se der erro, desfaz tudo (rollback) para não deixar dados órfãos
+        // Starts transaction to ensure data integrity
+        // If all goes well, confirms (commit)
+        // If error, undoes everything (rollback) to not leave orphaned data
         $pdo->beginTransaction();
         try {
-            // PASSO 1: Deleta todas as sessões de surf do usuário
+            // STEP 1: Deletes all user's surf sessions
             $del_sessoes = $pdo->prepare("DELETE FROM sessoes WHERE usuario_id = ?");
             $del_sessoes->execute([$user_id]);
 
-            // PASSO 2: Deleta todas as pranchas do usuário
+            // STEP 2: Deletes all user's boards
             $del_pranchas = $pdo->prepare("DELETE FROM pranchas WHERE usuario_id = ?");
             $del_pranchas->execute([$user_id]);
 
-            // PASSO 3: Por fim, deleta a conta do usuário
+            // STEP 3: Finally, deletes user account
             $del_usuario = $pdo->prepare("DELETE FROM usuarios WHERE id = ?");
             $del_usuario->execute([$user_id]);
 
-            // Se chegou aqui sem erros, confirma todas as deleções
+            // If reached here without errors, confirms all deletions
             $pdo->commit();
         } catch (Exception $e) {
-            // Se houver qualquer erro no processo
-            // Desfaz TODAS as operações para não deixar dados inconsistentes
+            // If any error in process
+            // Undoes ALL operations to not leave inconsistent data
             $pdo->rollBack();
         }
     }
 }
 
-// ============= REDIRECIONAMENTO =============
-// Após executar a ação, redireciona de volta para o painel admin
-// para que o admin veja a lista atualizada
+// ============= REDIRECT =============
+// After executing action, redirects back to admin panel
+// so admin sees updated list
 header("Location: admin.php");
 exit;

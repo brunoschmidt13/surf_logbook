@@ -2,19 +2,19 @@
 /**
  * ====================================================================
  * FILE: admin.php
- * PURPOSE: Painel Principal de Administração - Controle de Usuários
+ * PURPOSE: Main Administration Panel - User Control
  * ====================================================================
  * 
- * Este é o painel principal para administradores do SurfLog.
- * Fornece:
- * 1. Lista de TODOS os usuários do sistema
- * 2. Visualizar informações de cada usuário (nome, email, nível)
- * 3. Acessar dados de pranchas de cada usuário
- * 4. Acessar histórico de sessões de cada usuário
- * 5. Promover/Rebaixar usuários (Admin <-> Comum)
- * 6. Deletar usuários completamente
+ * This is the main admin panel for SurfLog administrators.
+ * Provides:
+ * 1. List of ALL users in the system
+ * 2. View information for each user (name, email, level)
+ * 3. Access board data for each user
+ * 4. Access session history for each user
+ * 5. Promote/Demote users (Admin <-> Common)
+ * 6. Delete users completely
  * 
- * SEGURANÇA: Apenas usuários com is_admin = 1 podem acessar
+ * SECURITY: Only users with is_admin = 1 can access
  */
 
 // Importa a conexão com o banco de dados
@@ -57,11 +57,11 @@ $usuarios = $stmt_usuarios->fetchAll();
 ?>
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SurfLog - Controle Geral Admin</title>
+    <title>SurfLog - Admin General Control</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; margin: 0; color: #1e293b; }
         .navbar { background-color: #ffffff; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; }
@@ -100,29 +100,29 @@ $usuarios = $stmt_usuarios->fetchAll();
     <div class="navbar">
         <div class="logo">⚙️ SurfLog Master Admin</div>
         <div class="nav-links">
-            <a href="dashboard.php">← Voltar ao App</a>
+            <a href="dashboard.php">← Back to App</a>
             <a href="logout.php" style="color: #ef4444;">Log out</a>
         </div>
     </div>
 
     <div class="main-container">
-        <h1>Painel de Controle de Usuários</h1>
-        <p class="subtitle">Gerencie contas, pranchas, sessões e históricos de navegação de qualquer surfista.</p>
+        <h1>User Control Panel</h1>
+        <p class="subtitle">Manage accounts, boards, sessions and navigation history for any surfer.</p>
 
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Nome</th>
-                    <th>E-mail</th>
-                    <th>Nível</th>
-                    <th>Gerenciar Dados</th>
-                    <th>Ações de Conta</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Level</th>
+                    <th>Manage Data</th>
+                    <th>Account Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if(empty($usuarios)): ?>
                     <tr>
-                        <td colspan="5" style="text-align: center; color: #94a3b8; padding: 30px;">Nenhum outro usuário cadastrado.</td>
+                        <td colspan="5" style="text-align: center; color: #94a3b8; padding: 30px;">No other users registered.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach($usuarios as $user): ?>
@@ -133,24 +133,24 @@ $usuarios = $stmt_usuarios->fetchAll();
                                 <?php if($user['is_admin'] == 1): ?>
                                     <span class="badge badge-admin">Admin</span>
                                 <?php else: ?>
-                                    <span class="badge badge-user">Comum</span>
+                                    <span class="badge badge-user">User</span>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <div class="btn-group">
-                                    <a href="admin_pranchas.php?usuario_id=<?= $user['id'] ?>" class="btn-action btn-data">🏄‍♂️ Pranchas</a>
-                                    <a href="admin_sessoes.php?usuario_id=<?= $user['id'] ?>" class="btn-action btn-data">🌊 Sessões</a>
+                                    <a href="admin_pranchas.php?usuario_id=<?= $user['id'] ?>" class="btn-action btn-data">🏄‍♂️ Boards</a>
+                                    <a href="admin_sessoes.php?usuario_id=<?= $user['id'] ?>" class="btn-action btn-data">🌊 Sessions</a>
                                 </div>
                             </td>
                             <td>
                                 <div class="btn-group">
                                     <a href="admin_acoes.php?action=toggle_role&id=<?= $user['id'] ?>" class="btn-action btn-toggle">
-                                        <?= $user['is_admin'] == 1 ? '📥 Rebaixar' : '👑 Promover' ?>
+                                        <?= $user['is_admin'] == 1 ? '📥 Demote' : '👑 Promote' ?>
                                     </a>
                                     <a href="admin_acoes.php?action=delete_user&id=<?= $user['id'] ?>" 
                                        class="btn-action btn-delete" 
-                                       onclick="return confirm('ATENÇÃO CRÍTICA: Apagar este usuário excluirá permanentemente o cadastro, TODAS as pranchas e TODAS as sessões dele no sistema. Continuar?')">
-                                        🗑️ Excluir Usuário
+                                       onclick="return confirm('CRITICAL WARNING: Deleting this user will permanently remove the account, ALL boards and ALL sessions in the system. Continue?')">
+                                        🗑️ Delete User
                                     </a>
                                 </div>
                             </td>

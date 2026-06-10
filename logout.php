@@ -2,17 +2,17 @@
 /**
  * ====================================================================
  * FILE: logout.php
- * PURPOSE: Encerrar a Sessão do Usuário
+ * PURPOSE: End User Session
  * ====================================================================
  * 
- * Este arquivo é muito simples mas crucial para segurança.
- * Quando o usuário clica em "Log out", esta página:
- * 1. Inicia a sessão (para acessar dados dela)
- * 2. Limpa todos os dados da sessão
- * 3. Destrói a sessão completamente
- * 4. Redireciona para a página de login
+ * This file is very simple but crucial for security.
+ * When user clicks "Log out", this page:
+ * 1. Starts session (to access its data)
+ * 2. Clears all session data
+ * 3. Completely destroys session
+ * 4. Redirects to login page
  * 
- * Sem isso, o usuário continuaria logado após clicar em logout.
+ * Without this, user would stay logged in after clicking logout.
  */
 
 // Inicia a sessão para poder acessar e modificar seus dados

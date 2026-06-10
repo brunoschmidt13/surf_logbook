@@ -2,82 +2,82 @@
 /**
  * ====================================================================
  * FILE: admin_sessoes.php
- * PURPOSE: Visualizar e Gerenciar Sessões de Surf de um Usuário
+ * PURPOSE: View and Manage Surf Sessions of a User
  * ====================================================================
  * 
- * Esta página permite ao admin:
- * 1. Ver TODAS as sessões de surf de um usuário específico
- * 2. Visualizar detalhes completos de cada sessão
- * 3. Deletar sessões individuais do histórico
+ * This page allows admin to:
+ * 1. See ALL surf sessions of a specific user
+ * 2. View complete details of each session
+ * 3. Delete individual sessions from history
  * 
- * Fluxo:
- * 1. Admin clica em "Sessões" de um usuário em admin.php
- * 2. É redirecionado para admin_sessoes.php?usuario_id=123
- * 3. Vê tabela com histórico de todas as sessões daquele usuário
- * 4. Pode deletar sessões pela ação na tabela
+ * Flow:
+ * 1. Admin clicks "Sessions" of a user in admin.php
+ * 2. Gets redirected to admin_sessoes.php?usuario_id=123
+ * 3. Sees table with history of all sessions of that user
+ * 4. Can delete sessions via action in table
  * 
- * SEGURANÇA: Requer ser admin E fornecer ID válido do usuário
+ * SECURITY: Requires being admin AND providing valid user ID
  */
 
-// Importa a conexão com o banco de dados
+// Imports database connection
 require_once 'config/conexao.php';
 
-// Inicia a sessão para verificar permissões
+// Starts session to verify permissions
 session_start();
 
-// ============= VERIFICAÇÃO DE ACESSO - PROTEÇÃO 1 =============
-// Verifica se o usuário está logado
+// ============= ACCESS VERIFICATION - PROTECTION 1 =============
+// Verifies if user is logged in
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
     exit;
 }
 
-// Busca informações do usuário logado para verificar se é admin
+// Gets logged-in user information to verify if admin
 $stmt = $pdo->prepare("SELECT is_admin FROM usuarios WHERE id = ?");
 $stmt->execute([$_SESSION['usuario_id']]);
 $user_atual = $stmt->fetch();
 
-// Se não é admin, redireciona
+// If not admin, redirect
 if (!$user_atual || $user_atual['is_admin'] != 1) {
     header("Location: dashboard.php");
     exit;
 }
 
-// ============= VALIDAR ID DO USUÁRIO ALVO =============
-// Obtém e valida o ID do usuário cujas sessões queremos ver
+// ============= VALIDATE TARGET USER ID =============
+// Gets and validates ID of user whose sessions we want to see
 $usuario_alvo_id = filter_input(INPUT_GET, 'usuario_id', FILTER_VALIDATE_INT);
 
-// Se o ID não é válido, redireciona para admin.php
+// If ID is not valid, redirect to admin.php
 if (!$usuario_alvo_id) {
     header("Location: admin.php");
     exit;
 }
 
-// ============= BUSCAR DADOS DO USUÁRIO ALVO =============
-// Obtém o nome do usuário para exibir no título
+// ============= FETCH TARGET USER DATA =============
+// Gets user name to display on page title
 $stmt_user = $pdo->prepare("SELECT nome FROM usuarios WHERE id = ?");
 $stmt_user->execute([$usuario_alvo_id]);
 $usuario_alvo = $stmt_user->fetch();
 
-// ============= DELETAR SESSÃO SE SOLICITADO =============
-// Verifica se há parâmetro de deleção na URL
+// ============= DELETE SESSION IF REQUESTED =============
+// Checks if there's a delete parameter in URL
 if (isset($_GET['deletar_sessao'])) {
-    // Obtém e valida o ID da sessão a deletar
+    // Gets and validates ID of session to delete
     $sessao_id = filter_input(INPUT_GET, 'deletar_sessao', FILTER_VALIDATE_INT);
     
-    // Deleta a sessão (verifica dupla segurança: ID da sessão E ID do proprietário)
+    // Deletes session (checks double security: session ID AND owner ID)
     $stmt_del = $pdo->prepare("DELETE FROM sessoes WHERE id = ? AND usuario_id = ?");
     $stmt_del->execute([$sessao_id, $usuario_alvo_id]);
     
-    // Redireciona para recarregar a página sem a sessão deletada
+    // Redirects to reload page without deleted session
     header("Location: admin_sessoes.php?usuario_id=" . $usuario_alvo_id);
     exit;
 }
 
-// ============= BUSCAR TODAS AS SESSÕES DO USUÁRIO =============
-// Busca todas as sessões combinando dados com o modelo da prancha utilizada
-// LEFT JOIN permite exibir sessões mesmo que a prancha tenha sido deletada
-// Ordena por data da sessão (mais recente primeiro)
+// ============= FETCH ALL USER'S SESSIONS =============
+// Gets all sessions combining data with board model used
+// LEFT JOIN allows displaying sessions even if board was deleted
+// Orders by session date (most recent first)
 $stmt_sessoes = $pdo->prepare("
     SELECT s.*, p.modelo AS prancha_nome 
     FROM sessoes s 
@@ -90,10 +90,10 @@ $sessoes = $stmt_sessoes->fetchAll();
 ?>
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Sessões de <?= htmlspecialchars($usuario_alvo['nome']) ?></title>
+    <title>Admin - Sessions of <?= htmlspecialchars($usuario_alvo['nome']) ?></title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; margin: 0; padding: 40px; }
         .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
@@ -112,24 +112,24 @@ $sessoes = $stmt_sessoes->fetchAll();
 
     <div class="header-area">
         <div>
-            <a href="admin.php" class="btn-back">← Voltar ao Painel</a>
-            <h1 style="margin-top:15px;">Histórico de Surf: <?= htmlspecialchars($usuario_alvo['nome']) ?></h1>
+            <a href="admin.php" class="btn-back">← Back to Panel</a>
+            <h1 style="margin-top:15px;">Surf History: <?= htmlspecialchars($usuario_alvo['nome']) ?></h1>
         </div>
     </div>
 
     <?php if(empty($sessoes)): ?>
-        <p style="color: #64748b;">Este usuário ainda não registrou nenhuma sessão de surf.</p>
+        <p style="color: #64748b;">This user has not recorded any surf sessions yet.</p>
     <?php else: ?>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>Data</th>
-                        <th>Localização</th>
-                        <th>Duração</th>
-                        <th>Prancha</th>
-                        <th>Nota</th>
-                        <th>Ação</th>
+                        <th>Date</th>
+                        <th>Location</th>
+                        <th>Duration</th>
+                        <th>Board</th>
+                        <th>Rating</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -141,11 +141,11 @@ $sessoes = $stmt_sessoes->fetchAll();
                                 <?= htmlspecialchars($s['cidade']) ?>/<?= htmlspecialchars($s['estado']) ?>
                             </td>
                             <td><?= $s['duracao_minutos'] ?> min</td>
-                            <td><?= $s['prancha_nome'] ? htmlspecialchars($s['prancha_nome']) : '<span style="color:#94a3b8;">Nenhuma</span>' ?></td>
+                            <td><?= $s['prancha_nome'] ? htmlspecialchars($s['prancha_nome']) : '<span style="color:#94a3b8;">None</span>' ?></td>
                             <td>⭐ <?= number_format($s['nota'], 1) ?></td>
                             <td>
                                 <a href="admin_sessoes.php?usuario_id=<?= $usuario_alvo_id ?>&deletar_sessao=<?= $s['id'] ?>" 
-                                   class="btn-del" onclick="return confirm('Tem certeza que deseja apagar esta sessão de surf do histórico do usuário?')">Excluir</a>
+                                   class="btn-del" onclick="return confirm('Are you sure you want to delete this surf session from user history?')">Delete</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

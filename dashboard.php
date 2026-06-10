@@ -2,7 +2,7 @@
 /**
  * ====================================================================
  * FILE: dashboard.php
- * PURPOSE: Dashboard Principal do Usuário - Visualizar Logbook de Surf
+ * PURPOSE: Main User Dashboard - View Surf Logbook
  * ====================================================================
  */
 
@@ -14,7 +14,7 @@ if (!isset($_SESSION['usuario_id'])) {
     exit;
 }
 
-// Controle do informativo flutuante pós-login
+// Control of post-login floating notice
 $exibir_informativo = false;
 if (isset($_SESSION['mostrar_aviso']) && $_SESSION['mostrar_aviso'] === true) {
     $exibir_informativo = true;
@@ -27,7 +27,7 @@ $usuario_nome = $_SESSION['usuario_nome'];
 $partes_nome = explode(' ', $usuario_nome);
 $primeiro_nome = $partes_nome[0];
 
-// ============= 1. BUSCAR ESTATÍSTICAS GERAIS DO DASHBOARD =============
+// ============= 1. FETCH GENERAL DASHBOARD STATISTICS =============
 $stmt = $pdo->prepare("
     SELECT 
         COUNT(*) as total_sessoes, 
@@ -43,7 +43,7 @@ $total_sessoes = $estatisticas['total_sessoes'] ?? 0;
 $total_minutos = $estatisticas['total_minutos'] ?? 0;
 $media_nota = $estatisticas['media_nota'] ? number_format($estatisticas['media_nota'], 1, '.', '') : '0.0';
 
-// ============= 2. BUSCAR RECORDES E PREFERÊNCIAS =============
+// ============= 2. FETCH RECORDS AND PREFERENCES =============
 $stmt_longa = $pdo->prepare("SELECT MAX(duracao_minutos) as maior_tempo FROM sessoes WHERE usuario_id = ?");
 $stmt_longa->execute([$usuario_id]);
 $sessao_longa = $stmt_longa->fetch();
@@ -60,19 +60,19 @@ $stmt_prancha_top = $pdo->prepare("
 ");
 $stmt_prancha_top->execute([$usuario_id]);
 $prancha_top = $stmt_prancha_top->fetch();
-$prancha_mais_usada = $prancha_top ? $prancha_top['modelo'] : "Nenhuma ainda";
+$prancha_mais_usada = $prancha_top ? $prancha_top['modelo'] : "None yet";
 
 $stmt_onda_top = $pdo->prepare("SELECT MAX(altura_onda) as maior_onda FROM sessoes WHERE usuario_id = ?");
 $stmt_onda_top->execute([$usuario_id]);
 $onda_top = $stmt_onda_top->fetch();
 $maior_onda = $onda_top['maior_onda'] ?? 0.0;
 
-// ============= 3. BUSCAR PRANCHAS DO USUÁRIO =============
+// ============= 3. FETCH USER'S BOARDS =============
 $stmt_pranchas = $pdo->prepare("SELECT * FROM pranchas WHERE usuario_id = ? ORDER BY id DESC");
 $stmt_pranchas->execute([$usuario_id]);
 $pranchas = $stmt_pranchas->fetchAll();
 
-// ============= 4. BUSCAR SESSÕES DE SURF DO USUÁRIO =============
+// ============= 4. FETCH USER'S SURF SESSIONS =============
 $stmt_sessoes = $pdo->prepare("
     SELECT s.*, p.modelo as prancha_modelo 
     FROM sessoes s 
@@ -84,7 +84,7 @@ $stmt_sessoes->execute([$usuario_id]);
 $sessoes = $stmt_sessoes->fetchAll();
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -128,7 +128,7 @@ $sessoes = $stmt_sessoes->fetchAll();
         .session-location span { color: #64748b; font-weight: normal; font-size: 14px; }
         .session-details { font-size: 14px; color: #475569; line-height: 1.6; }
 
-        /* Estilos do Informativo de Login */
+        /* Styles for Login Notice */
         .modal-info-login { position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.7); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; }
         .info-login-content { background-color: white; padding: 35px; border-radius: 16px; width: 90%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); text-align: center; animation: popupSuave 0.3s ease-out; }
         @keyframes popupSuave { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -154,13 +154,13 @@ $sessoes = $stmt_sessoes->fetchAll();
     <div id="modalInformativoLogin" class="modal-info-login">
         <div class="info-login-content">
             <div style="font-size: 40px; margin-bottom: 15px;">📢</div>
-            <h2>Novidades no SurfLog!</h2>
+            <h2>What's New in SurfLog!</h2>
             <p>
-                Fala, mestre! Atualizamos o sistema. Agora você pode cadastrar a 
-                <strong>Altura da Onda</strong> e o <strong>Período</strong> em cada sessão, 
-                além de acompanhar novos recordes direto no seu painel. Aloha e boas ondas! 🌊🤙
+                Hey master! We've updated the system. Now you can register the 
+                <strong>Wave Height</strong> and <strong>Period</strong> in each session, 
+                plus track new records right on your panel. Aloha and good waves! 🌊🤙
             </p>
-            <button class="btn-vamos-la" onclick="fecharInformativo()">Vamos lá</button>
+            <button class="btn-vamos-la" onclick="closeNotice()">Got it</button>
         </div>
     </div>
     <?php endif; ?>
@@ -177,7 +177,7 @@ $sessoes = $stmt_sessoes->fetchAll();
             $check_admin = $stmt_check->fetch();
             if ($check_admin && $check_admin['is_admin'] == 1):
             ?>
-                <a href="admin.php" style="color: #ef4444; font-weight: bold; text-decoration: none; margin-right: 15px;">⚙️ Painel Admin</a>
+                <a href="admin.php" style="color: #ef4444; font-weight: bold; text-decoration: none; margin-right: 15px;">⚙️ Admin Panel</a>
             <?php endif; ?>
             <span>@<?= htmlspecialchars($usuario_nome) ?></span>
             <a href="logout.php" class="logout-btn">Log out ↗</a>
@@ -191,8 +191,8 @@ $sessoes = $stmt_sessoes->fetchAll();
                 <h1>Hi, <?= htmlspecialchars($primeiro_nome) ?></h1>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button onclick="abrirModalPrancha()" class="btn-primary" style="background-color: #64748b;">+ New Board</button>
-                <button onclick="abrirModalSessao()" class="btn-primary">+ New Session</button>
+                <button onclick="openBoardModal()" class="btn-primary" style="background-color: #64748b;">+ New Board</button>
+                <button onclick="openSessionModal()" class="btn-primary">+ New Session</button>
             </div>
         </div>
 
@@ -200,42 +200,42 @@ $sessoes = $stmt_sessoes->fetchAll();
             <div class="widget-card">
                 <div class="widget-icon icon-blue">🏄‍♂️</div>
                 <div class="widget-info">
-                    <div class="widget-label">Total Sessões</div>
+                    <div class="widget-label">Total Sessions</div>
                     <div class="widget-value"><?= $total_sessoes ?></div>
                 </div>
             </div>
             <div class="widget-card">
                 <div class="widget-icon icon-blue">⏱️</div>
                 <div class="widget-info">
-                    <div class="widget-label">Tempo na Água</div>
+                    <div class="widget-label">Water Time</div>
                     <div class="widget-value"><?= $total_minutos ?> min</div>
                 </div>
             </div>
             <div class="widget-card">
                 <div class="widget-icon icon-amber">⭐</div>
                 <div class="widget-info">
-                    <div class="widget-label">Nota Média</div>
+                    <div class="widget-label">Average Rating</div>
                     <div class="widget-value"><?= $media_nota ?> ★</div>
                 </div>
             </div>
             <div class="widget-card">
                 <div class="widget-icon icon-blue">⏳</div>
                 <div class="widget-info">
-                    <div class="widget-label">Sessão Mais Longa</div>
+                    <div class="widget-label">Longest Session</div>
                     <div class="widget-value"><?= $maior_sessao ?> min</div>
                 </div>
             </div>
             <div class="widget-card">
                 <div class="widget-icon icon-amber">🛹</div>
                 <div class="widget-info">
-                    <div class="widget-label">Prancha Mais Usada</div>
+                    <div class="widget-label">Most Used Board</div>
                     <div class="widget-value" style="font-size: 16px; margin-top: 6px;"><?= htmlspecialchars($prancha_mais_usada) ?></div>
                 </div>
             </div>
             <div class="widget-card">
                 <div class="widget-icon icon-emerald">🌊</div>
                 <div class="widget-info">
-                    <div class="widget-label">Maior Onda</div>
+                    <div class="widget-label">Biggest Wave</div>
                     <div class="widget-value"><?= number_format($maior_onda, 1, ',', '.') ?> m</div>
                 </div>
             </div>
@@ -244,7 +244,7 @@ $sessoes = $stmt_sessoes->fetchAll();
         <div class="section-title">My Surfboards</div>
         <div class="content-box">
             <?php if (empty($pranchas)): ?>
-                <p style="color: #64748b; margin: 0;">Nenhuma prancha cadastrada ainda.</p>
+                <p style="color: #64748b; margin: 0;">No boards registered yet.</p>
             <?php else: ?>
                 <?php foreach ($pranchas as $board): ?>
                     <div class="board-item">
@@ -260,7 +260,7 @@ $sessoes = $stmt_sessoes->fetchAll();
         <div class="section-title">All Sessions</div>
         <div class="content-box">
             <?php if (empty($sessoes)): ?>
-                <p style="color: #64748b; margin: 0;">Nenhuma sessão registrada ainda.</p>
+                <p style="color: #64748b; margin: 0;">No sessions recorded yet.</p>
             <?php else: ?>
                 <?php foreach ($sessoes as $sessao): ?>
                     <div class="session-item">
@@ -283,97 +283,97 @@ $sessoes = $stmt_sessoes->fetchAll();
 
     <div id="modalPrancha" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="fecharModalPrancha()">&times;</span>
-            <h2 style="margin-top:0; color:#0f172a; margin-bottom:20px;">Nova Prancha</h2>
+            <span class="close-btn" onclick="closeBoardModal()">&times;</span>
+            <h2 style="margin-top:0; color:#0f172a; margin-bottom:20px;">New Board</h2>
             <form action="salvar_prancha.php" method="POST" class="form-modal">
-                <label>Modelo</label>
+                <label>Model</label>
                 <input type="text" name="modelo" placeholder="Ex: SF3, Monsta Box" required>
                 
-                <label>Marca</label>
+                <label>Brand</label>
                 <input type="text" name="marca" placeholder="Ex: Tokoro, JS, Pyzel" required>
                 
                 <div class="form-grid">
                     <div>
-                        <label>Tamanho</label>
+                        <label>Size</label>
                         <input type="text" name="tamanho" placeholder="Ex: 5'11" required>
                     </div>
                     <div>
-                        <label>Volume (Litros)</label>
+                        <label>Volume (Liters)</label>
                         <input type="text" name="volume" placeholder="Ex: 29.5" required>
                     </div>
                 </div>
                 <input type="hidden" name="medidas" value="">
-                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;">Salvar Prancha</button>
+                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;">Save Board</button>
             </form>
         </div>
     </div>
 
     <div id="modalSessao" class="modal">
         <div class="modal-content">
-            <span class="close-btn" onclick="fecharModalSessao()">&times;</span>
+            <span class="close-btn" onclick="closeSessionModal()">&times;</span>
             <h2 style="margin-top:0; color:#0f172a; margin-bottom:20px;">Log New Session</h2>
             <form action="salvar_sessao.php" method="POST" class="form-modal">
                 <div class="form-grid">
                     <div>
-                        <label>Data</label>
+                        <label>Date</label>
                         <input type="date" name="data_sessao" required>
                     </div>
                     <div>
-                        <label>Duração (minutos)</label>
+                        <label>Duration (minutes)</label>
                         <input type="number" name="duracao_minutos" placeholder="Ex: 90" required>
                     </div>
                     <div>
-                        <label>Estado</label>
+                        <label>State</label>
                         <input type="text" name="estado" placeholder="Ex: SC" required>
                     </div>
                     <div>
-                        <label>Cidade</label>
+                        <label>City</label>
                         <input type="text" name="cidade" placeholder="Ex: Imbituba" required>
                     </div>
                     <div class="full-width">
-                        <label>Praia / Pico</label>
-                        <input type="text" name="praia" placeholder="Ex: Praia do Rosa (Canto Sul)" required>
+                        <label>Beach / Spot</label>
+                        <input type="text" name="praia" placeholder="Ex: Rosa Beach (South Corner)" required>
                     </div>
                     <div>
-                        <label>Altura da Onda (m)</label>
+                        <label>Wave Height (m)</label>
                         <input type="number" step="0.1" name="altura_onda" placeholder="Ex: 1.5">
                     </div>
                     <div>
-                        <label>Período (s)</label>
+                        <label>Period (s)</label>
                         <input type="number" name="periodo_onda" placeholder="Ex: 11">
                     </div>
                     <div class="full-width">
-                        <label>Prancha Utilizada</label>
+                        <label>Board Used</label>
                         <select name="prancha_id">
-                            <option value="">Nenhuma / Outra</option>
+                            <option value="">None / Other</option>
                             <?php foreach($pranchas as $b): ?>
                                 <option value="<?= $b['id'] ?>"><?= htmlspecialchars($b['marca'] ?? '') ?> - <?= htmlspecialchars($b['modelo']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="full-width">
-                        <label>Nota da Sessão</label>
-                        <input type="number" step="0.5" min="0.5" max="5" name="nota" placeholder="De 0.5 a 5.0" required>
+                        <label>Session Rating</label>
+                        <input type="number" step="0.5" min="0.5" max="5" name="nota" placeholder="From 0.5 to 5.0" required>
                     </div>
                     <div class="full-width">
-                        <label>Observações / Diário</label>
-                        <textarea name="observacoes" rows="3" placeholder="Como estava o vento? E a maré? Altas valas?"></textarea>
+                        <label>Notes / Diary</label>
+                        <textarea name="observacoes" rows="3" placeholder="How was the wind? And the tide? Big barrels?"></textarea>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;">Registrar Sessão</button>
+                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;">Log Session</button>
             </form>
         </div>
     </div>
 
     <script>
-        function fecharInformativo() {
+        function closeNotice() {
             const modal = document.getElementById('modalInformativoLogin');
             if (modal) modal.style.display = 'none';
         }
-        function abrirModalPrancha() { document.getElementById('modalPrancha').style.display = 'flex'; }
-        function fecharModalPrancha() { document.getElementById('modalPrancha').style.display = 'none'; }
-        function abrirModalSessao() { document.getElementById('modalSessao').style.display = 'flex'; }
-        function fecharModalSessao() { document.getElementById('modalSessao').style.display = 'none'; }
+        function openBoardModal() { document.getElementById('modalPrancha').style.display = 'flex'; }
+        function closeBoardModal() { document.getElementById('modalPrancha').style.display = 'none'; }
+        function openSessionModal() { document.getElementById('modalSessao').style.display = 'flex'; }
+        function closeSessionModal() { document.getElementById('modalSessao').style.display = 'none'; }
         
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {

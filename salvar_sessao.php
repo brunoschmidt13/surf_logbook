@@ -2,101 +2,101 @@
 /**
  * ====================================================================
  * FILE: salvar_sessao.php
- * PURPOSE: Salvar Nova Sessão de Surf (Session Log)
+ * PURPOSE: Save New Surf Session (Session Log)
  * ====================================================================
  * 
- * Esta página recebe os dados de uma sessão de surf preenchida no
- * formulário do dashboard e insere no banco de dados.
+ * This page receives data of a surf session filled in
+ * dashboard form and inserts it in database.
  * 
- * Uma "sessão de surf" inclui:
- * - Data da sessão
- * - Duração (em minutos)
- * - Localização (estado, cidade, praia)
- * - Prancha utilizada
- * - Condições do mar (altura e período da onda)
- * - Nota pessoal (como foi)
- * - Observações gerais
+ * A "surf session" includes:
+ * - Session date
+ * - Duration (in minutes)
+ * - Location (state, city, beach)
+ * - Board used
+ * - Sea conditions (wave height and period)
+ * - Personal rating (how it was)
+ * - General notes
  */
 
-// Importa a conexão com o banco de dados
+// Imports database connection
 require_once 'config/conexao.php';
 
-// Inicia a sessão para verificar se o usuário está logado
+// Starts session to verify if user is logged in
 session_start();
 
-// ============= VERIFICAÇÃO DE SEGURANÇA =============
-// Se o usuário não está logado (não tem ID na sessão)
+// ============= SECURITY VERIFICATION =============
+// If user is not logged in (has no ID in session)
 if (!isset($_SESSION['usuario_id'])) {
-    // Redireciona para a página de login
+    // Redirect to login page
     header("Location: index.php");
-    exit; // Para a execução aqui
+    exit; // Stop execution here
 }
 
-// ============= PROCESSA SUBMISSÃO DO FORMULÁRIO =============
-// Verifica se a requisição foi um POST (não GET, PUT, etc)
+// ============= PROCESS FORM SUBMISSION =============
+// Verifies if request was a POST (not GET, PUT, etc)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Obtém o ID do usuário logado da sessão
+    // Gets logged-in user ID from session
     $usuario_id = $_SESSION['usuario_id'];
     
-    // ============= CAMPOS BÁSICOS =============
-    // Data da sessão de surf (formato YYYY-MM-DD)
+    // ============= BASIC FIELDS =============
+    // Date of surf session (format YYYY-MM-DD)
     $data_sessao     = $_POST['data_sessao'];
     
-    // Duração em minutos convertida para inteiro (remove decimais se houver)
+    // Duration in minutes converted to integer (removes decimals if any)
     $duracao_minutos = intval($_POST['duracao_minutos']);
     
-    // Nota da sessão convertida para float (permite decimais como 4.5)
+    // Session rating converted to float (allows decimals like 4.5)
     $nota            = floatval($_POST['nota']);
     
-    // ============= LOCALIZAÇÃO =============
-    // Estado (ex: "Santa Catarina")
+    // ============= LOCATION =============
+    // State (ex: "Santa Catarina")
     $estado          = $_POST['estado'];
     
-    // Cidade (ex: "Imbituba")
+    // City (ex: "Imbituba")
     $cidade          = $_POST['cidade'];
     
-    // Praia específica (ex: "Praia do Rosa - Norte")
+    // Specific beach (ex: "Rosa Beach - North")
     $praia           = $_POST['praia'];
     
-    // ============= OBSERVAÇÕES =============
-    // Notas livres do usuário sobre a sessão
+    // ============= NOTES =============
+    // Free notes from user about session
     $observacoes     = $_POST['observacoes'];
     
-    // ============= PRANCHA E CONDIÇÕES DO MAR =============
-    // ID da prancha utilizada (pode ser null se deixado em branco)
+    // ============= BOARD AND SEA CONDITIONS =============
+    // ID of board used (can be null if left blank)
     $prancha_id      = !empty($_POST['prancha_id']) ? intval($_POST['prancha_id']) : null;
 
-    // NOVO: Altura da onda em metros (pode ter decimais como 1.5)
-    // Se não preenchido, fica NULL
+    // NEW: Wave height in meters (can have decimals like 1.5)
+    // If not filled, becomes NULL
     $altura_onda     = !empty($_POST['altura_onda']) ? floatval($_POST['altura_onda']) : null;
     
-    // NOVO: Período da onda em segundos (deve ser um número inteiro como 11)
-    // Se não preenchido, fica NULL
+    // NEW: Wave period in seconds (should be integer like 11)
+    // If not filled, becomes NULL
     $periodo_onda    = !empty($_POST['periodo_onda']) ? intval($_POST['periodo_onda']) : null;
 
-    // ============= VALIDAÇÃO BÁSICA =============
-    // Verifica se os campos obrigatórios foram preenchidos
+    // ============= BASIC VALIDATION =============
+    // Verifies if required fields were filled
     if ($data_sessao && $duracao_minutos) {
-        // Prepara a query INSERT com placeholders (?) para segurança
+        // Prepares INSERT query with placeholders (?) for security
         $stmt = $pdo->prepare("
             INSERT INTO sessoes (usuario_id, prancha_id, data_sessao, duracao_minutos, nota, estado, cidade, praia, altura_onda, periodo_onda, observacoes) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
-        // Executa a query substituindo os placeholders pelos valores reais
-        // A ordem DEVE coincidir com os ? na query acima
+        // Executes query replacing placeholders with real values
+        // The order MUST match the ? in query above
         $stmt->execute([
-            $usuario_id,      // ID do usuário logado
-            $prancha_id,      // ID da prancha (pode ser NULL)
-            $data_sessao,     // Data da sessão
-            $duracao_minutos, // Duração em minutos
-            $nota,            // Nota da sessão
-            $estado,          // Estado
-            $cidade,          // Cidade
-            $praia,           // Praia
-            $altura_onda,     // Altura da onda em metros (pode ser NULL)
-            $periodo_onda,    // Período em segundos (pode ser NULL)
-            $observacoes      // Observações livres
+            $usuario_id,      // Logged-in user ID
+            $prancha_id,      // Board ID (can be NULL)
+            $data_sessao,     // Session date
+            $duracao_minutos, // Duration in minutes
+            $nota,            // Session rating
+            $estado,          // State
+            $cidade,          // City
+            $praia,           // Beach
+            $altura_onda,     // Wave height in meters (can be NULL)
+            $periodo_onda,    // Period in seconds (can be NULL)
+            $observacoes      // Free notes
         ]);
     }
 }

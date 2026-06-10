@@ -2,104 +2,104 @@
 /**
  * ====================================================================
  * FILE: admin_pranchas.php
- * PURPOSE: Gerenciar Pranchas de um Usuário Específico
+ * PURPOSE: Manage Boards of a Specific User
  * ====================================================================
  * 
- * Este página permite ao admin visualizar TODAS as pranchas de um
- * usuário específico e deletá-las se necessário.
+ * This page allows admin to view ALL boards of a
+ * specific user and delete them if necessary.
  * 
- * Fluxo:
- * 1. Admin clica em "Pranchas" de um usuário em admin.php
- * 2. É redirecionado para admin_pranchas.php?usuario_id=123
- * 3. Vê todas as pranchas daquele usuário
- * 4. Pode deletar pranchas individuais
+ * Flow:
+ * 1. Admin clicks "Boards" of a user in admin.php
+ * 2. Gets redirected to admin_pranchas.php?usuario_id=123
+ * 3. Sees all boards of that user
+ * 4. Can delete individual boards
  * 
- * SEGURANÇA: Requer ser admin E fornecer ID válido do usuário
+ * SECURITY: Requires being admin AND providing valid user ID
  */
 
-// Importa a conexão com o banco de dados
+// Imports database connection
 require_once 'config/conexao.php';
 
-// Inicia a sessão para verificar permissões
+// Starts session to verify permissions
 session_start();
 
-// ============= VERIFICAÇÃO DE ACESSO - PROTEÇÃO 1 =============
-// Verifica se o usuário está logado
+// ============= ACCESS VERIFICATION - PROTECTION 1 =============
+// Verifies if user is logged in
 if (!isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
     exit;
 }
 
-// Busca informações do usuário logado para verificar se é admin
+// Gets logged-in user information to verify if admin
 $stmt = $pdo->prepare("SELECT is_admin FROM usuarios WHERE id = ?");
 $stmt->execute([$_SESSION['usuario_id']]);
 $user_atual = $stmt->fetch();
 
-// Se não é admin, redireciona
+// If not admin, redirect
 if (!$user_atual || $user_atual['is_admin'] != 1) {
     header("Location: dashboard.php");
     exit;
 }
 
-// ============= VALIDAR ID DO USUÁRIO ALVO =============
-// Obtém e valida o ID do usuário cujas pranchas queremos ver
+// ============= VALIDATE TARGET USER ID =============
+// Gets and validates ID of user whose boards we want to see
 $usuario_alvo_id = filter_input(INPUT_GET, 'usuario_id', FILTER_VALIDATE_INT);
 
-// Se o ID não é válido, redireciona para admin.php
+// If ID is not valid, redirect to admin.php
 if (!$usuario_alvo_id) {
     header("Location: admin.php");
     exit;
 }
 
-// ============= BUSCAR DADOS DO USUÁRIO ALVO =============
-// Obtém o nome do usuário para exibir no título da página
+// ============= FETCH TARGET USER DATA =============
+// Gets user name to display on page title
 $stmt_user = $pdo->prepare("SELECT nome FROM usuarios WHERE id = ?");
 $stmt_user->execute([$usuario_alvo_id]);
 $usuario_alvo = $stmt_user->fetch();
 
-// ============= DELETAR PRANCHA SE SOLICITADO =============
-// Verifica se há parâmetro de deleção na URL
+// ============= DELETE BOARD IF REQUESTED =============
+// Checks if there's a delete parameter in URL
 if (isset($_GET['deletar_prancha'])) {
-    // Obtém e valida o ID da prancha a deletar
+    // Gets and validates ID of board to delete
     $prancha_id = filter_input(INPUT_GET, 'deletar_prancha', FILTER_VALIDATE_INT);
     
-    // Inicia uma transação para garantir consistência dos dados
+    // Starts a transaction to ensure data consistency
     $pdo->beginTransaction();
     try {
-        // PASSO 1: Desvincula a prancha de todas as sessões que a usavam
-        // Coloca NULL no campo prancha_id das sessões
+        // STEP 1: Disconnects board from all sessions that used it
+        // Sets NULL in prancha_id field of sessions
         $stmt_null = $pdo->prepare("UPDATE sessoes SET prancha_id = NULL WHERE prancha_id = ?");
         $stmt_null->execute([$prancha_id]);
         
-        // PASSO 2: Deleta a prancha
-        // Verifica dupla segurança: ID da prancha E ID do proprietário
+        // STEP 2: Deletes the board
+        // Checks double security: board ID AND owner ID
         $stmt_del = $pdo->prepare("DELETE FROM pranchas WHERE id = ? AND usuario_id = ?");
         $stmt_del->execute([$prancha_id, $usuario_alvo_id]);
         
-        // Confirma a transação
+        // Confirms transaction
         $pdo->commit();
         
-        // Redireciona para recarregar a página sem a prancha deletada
+        // Redirects to reload page without deleted board
         header("Location: admin_pranchas.php?usuario_id=" . $usuario_alvo_id);
         exit;
     } catch (Exception $e) {
-        // Se houver erro, desfaz tudo
+        // If error, undo everything
         $pdo->rollBack();
     }
 }
 
-// ============= BUSCAR TODAS AS PRANCHAS DO USUÁRIO =============
-// Busca todas as pranchas do usuário alvo ordenadas alfabeticamente
+// ============= FETCH ALL USER'S BOARDS =============
+// Gets all boards of target user ordered alphabetically
 $stmt_pranchas = $pdo->prepare("SELECT * FROM pranchas WHERE usuario_id = ? ORDER BY modelo ASC");
 $stmt_pranchas->execute([$usuario_alvo_id]);
 $pranchas = $stmt_pranchas->fetchAll();
 ?>
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Pranchas de <?= htmlspecialchars($usuario_alvo['nome']) ?></title>
+    <title>Admin - Boards of <?= htmlspecialchars($usuario_alvo['nome']) ?></title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; margin: 0; padding: 40px; }
         .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
@@ -115,23 +115,23 @@ $pranchas = $stmt_pranchas->fetchAll();
 
     <div class="header-area">
         <div>
-            <a href="admin.php" class="btn-back">← Voltar ao Painel</a>
-            <h1 style="margin-top:15px;">Pranchas de: <?= htmlspecialchars($usuario_alvo['nome']) ?></h1>
+            <a href="admin.php" class="btn-back">← Back to Panel</a>
+            <h1 style="margin-top:15px;">Boards of: <?= htmlspecialchars($usuario_alvo['nome']) ?></h1>
         </div>
     </div>
 
     <?php if(empty($pranchas)): ?>
-        <p style="color: #64748b;">Este usuário não possui pranchas cadastradas.</p>
+        <p style="color: #64748b;">This user has no boards registered.</p>
     <?php else: ?>
         <div class="grid">
             <?php foreach($pranchas as $p): ?>
                 <div class="card">
                     <h3>🏄‍♂️ <?= htmlspecialchars($p['modelo']) ?></h3>
-                    <p><strong>Marca:</strong> <?= htmlspecialchars($p['marca']) ?></p>
-                    <p><strong>Tamanho:</strong> <?= htmlspecialchars($p['tamanho']) ?></p>
+                    <p><strong>Brand:</strong> <?= htmlspecialchars($p['marca']) ?></p>
+                    <p><strong>Size:</strong> <?= htmlspecialchars($p['tamanho']) ?></p>
                     <p><strong>Volume:</strong> <?= htmlspecialchars($p['volume']) ?>L</p>
                     <a href="admin_pranchas.php?usuario_id=<?= $usuario_alvo_id ?>&deletar_prancha=<?= $p['id'] ?>" 
-                       class="btn-del" onclick="return confirm('Excluir esta prancha permanentemente?')">🗑️ Remover Prancha</a>
+                       class="btn-del" onclick="return confirm('Delete this board permanently?')">🗑️ Remove Board</a>
                 </div>
             <?php endforeach; ?>
         </div>

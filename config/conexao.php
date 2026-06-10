@@ -2,63 +2,63 @@
 /**
  * ====================================================================
  * FILE: config/conexao.php
- * PURPOSE: Configuração e Conexão com Banco de Dados MySQL
+ * PURPOSE: Database Configuration and Connection
  * ====================================================================
  * 
- * Este arquivo centraliza todas as configurações de conexão com o banco
- * de dados. É importado por require_once em quase todos os arquivos PHP.
+ * This file centralizes all database connection settings.
+ * It is imported via require_once in almost every PHP file.
  * 
- * Usa PDO (PHP Data Objects) para:
- * - Conexão segura e consistente
- * - Proteção contra SQL Injection (prepared statements)
- * - Tratamento robusto de erros
- * - Compatibilidade com diferentes bancos de dados
+ * Uses PDO (PHP Data Objects) for:
+ * - Secure and consistent connection
+ * - Protection against SQL Injection (prepared statements)
+ * - Robust error handling
+ * - Compatibility with different databases
  */
 
-// ============= CONFIGURAÇÕES DO BANCO DE DADOS =============
-// Servidor MySQL (localhost = máquina local)
+// ============= DATABASE SETTINGS =============
+// MySQL Server (localhost = local machine)
 $host = 'localhost';
 
-// Nome do banco de dados a ser usado
+// Name of database to be used
 $db   = 'surflog';
 
-// Usuário do MySQL (XAMPP padrão é 'root')
+// MySQL user (XAMPP default is 'root')
 $user = 'root';
 
-// Senha do usuário (XAMPP padrão é vazio)
+// User password (XAMPP default is empty)
 $pass = '';
 
-// Charset (utf8mb4 suporta caracteres especiais, emojis, etc)
+// Charset (utf8mb4 supports special characters, emojis, etc)
 $charset = 'utf8mb4';
 
-// ============= OPÇÕES PDO (Configurações avançadas) =============
+// ============= PDO OPTIONS (Advanced Settings) =============
 $options = [
-    // PDO::ATTR_ERRMODE = Define como erros serão tratados
-    // PDO::ERRMODE_EXCEPTION = Lança exceções (ideal para try-catch)
+    // PDO::ATTR_ERRMODE = Defines how errors will be handled
+    // PDO::ERRMODE_EXCEPTION = Throws exceptions (ideal for try-catch)
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
     
-    // PDO::ATTR_DEFAULT_FETCH_MODE = Define formato padrão dos resultados
-    // PDO::FETCH_ASSOC = Retorna arrays associativos ['coluna' => valor]
+    // PDO::ATTR_DEFAULT_FETCH_MODE = Defines default format of results
+    // PDO::FETCH_ASSOC = Returns associative arrays ['column' => value]
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     
-    // PDO::ATTR_EMULATE_PREPARES = Desabilita emulação de prepared statements
-    // false = Usa prepared statements reais do banco (mais seguro)
+    // PDO::ATTR_EMULATE_PREPARES = Disables prepared statement emulation
+    // false = Uses real prepared statements from database (more secure)
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-// ============= CONSTRUIR STRING DE CONEXÃO (DSN) =============
-// DSN (Data Source Name) = especifica como conectar ao banco
-// Formato: "mysql:host=localhost;dbname=surflog;charset=utf8mb4"
+// ============= BUILD CONNECTION STRING (DSN) =============
+// DSN (Data Source Name) = specifies how to connect to database
+// Format: "mysql:host=localhost;dbname=surflog;charset=utf8mb4"
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 
-// ============= CRIAR CONEXÃO PDO =============
+// ============= CREATE PDO CONNECTION =============
 try {
-    // Tenta criar uma nova instância de PDO com as configurações acima
-    // Se bem-sucedido, $pdo ficará disponível para todas as queries
+    // Tries to create new PDO instance with settings above
+    // If successful, $pdo will be available for all queries
     $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (\PDOException $e) {
-    // Se houver erro na conexão (banco offline, usuário errado, etc)
-    // Lança uma exceção com a mensagem de erro
+    // If connection error (database offline, wrong user, etc)
+    // Throws exception with error message
     throw new \PDOException($e->getMessage(), (int)$e->getCode());
 }
 ?>

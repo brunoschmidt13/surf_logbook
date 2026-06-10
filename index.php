@@ -2,14 +2,14 @@
 /**
  * ====================================================================
  * FILE: index.php
- * PURPOSE: Página de Login e Cadastro - Porta de entrada do SurfLog
+ * PURPOSE: Login and Registration Page - Gateway to SurfLog
  * ====================================================================
  */
 
 require_once 'config/conexao.php';
 session_start();
 
-// Se o usuário já está logado, redireciona diretamente para o dashboard
+// If user is already logged in, redirect directly to dashboard
 if (isset($_SESSION['usuario_id'])) {
     header("Location: dashboard.php");
     exit;
@@ -21,7 +21,7 @@ $sucesso = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $acao = $_POST['acao'] ?? '';
 
-    // ============= BLOCO DE CADASTRO =============
+    // ============= REGISTRATION BLOCK =============
     if ($acao === 'cadastrar') {
         $nome = filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS);
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
@@ -33,16 +33,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
                 $stmt->execute([$nome, $email, $senha_hash]);
-                $sucesso = "Conta criada com sucesso! Faça o login.";
+                $sucesso = "Account created successfully! Please log in.";
             } catch (PDOException $e) {
-                $erro = "Este e-mail já está cadastrado.";
+                $erro = "This email is already registered.";
             }
         } else {
-            $erro = "Preencha todos os campos corretamente.";
+            $erro = "Please fill all fields correctly.";
         }
     } 
     
-    // ============= BLOCO DE LOGIN =============
+    // ============= LOGIN BLOCK =============
     if ($acao === 'login') {
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
         $senha = $_POST['senha'];
@@ -56,22 +56,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['usuario_id'] = $usuario['id'];
                 $_SESSION['usuario_nome'] = $usuario['nome'];
 
-                // Ativa o informativo flutuante exclusivo para o primeiro carregamento pós-login
+                // Activates the floating notice exclusively for the first load after login
                 $_SESSION['mostrar_aviso'] = true;
 
                 header("Location: dashboard.php");
                 exit;
             } else {
-                $erro = "E-mail ou senha incorretos.";
+                $erro = "Email or password incorrect.";
             }
         } else {
-            $erro = "Por favor, insira um e-mail válido.";
+            $erro = "Please enter a valid email.";
         }
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             pointer-events: none;
         }
         .main-wrapper {
-            position: relative; z-index: 10; width: 100%; height: 100%;
+            position: relative; z-index: 10; width: 105%; height: 100%;
             display: grid; grid-template-columns: 1.2fr 0.8fr; box-sizing: border-box;
         }
         .info-column { display: flex; flex-direction: column; justify-content: center; padding: 0 10%; color: #ffffff; }
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .feature-card p { margin: 0; font-size: 12px; color: rgba(255, 255, 255, 0.7); line-height: 1.4; }
         .form-column { display: flex; justify-content: center; align-items: center; padding-right: 15%; }
         .login-card {
-            background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(20px);
             padding: 40px 35px; border-radius: 16px; width: 100%; max-width: 380px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.35); box-sizing: border-box;
         }
@@ -180,8 +180,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
 
                 <div class="tabs">
-                    <button class="tab-btn active" onclick="mudarAba('login')">Login</button>
-                    <button class="tab-btn" onclick="mudarAba('cadastro')">Sign Up</button>
+                    <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+                    <button class="tab-btn" onclick="switchTab('register')">Sign Up</button>
                 </div>
 
                 <div id="form-login" class="form-content active">
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="hidden" name="acao" value="login">
                         
                         <label for="email_login">Email</label>
-                        <input type="email" id="email_login" name="email" placeholder="seu@email.com" required>
+                        <input type="email" id="email_login" name="email" placeholder="your@email.com" required>
 
                         <label for="senha_login">Password</label>
                         <input type="password" id="senha_login" name="senha" placeholder="••••••••" required>
@@ -198,18 +198,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </form>
                 </div>
 
-                <div id="form-cadastro" class="form-content">
+                <div id="form-register" class="form-content">
                     <form action="index.php" method="POST">
                         <input type="hidden" name="acao" value="cadastrar">
 
-                        <label for="nome_cad">Nome Completo</label>
+                        <label for="nome_cad">Full Name</label>
                         <input type="text" id="nome_cad" name="nome" placeholder="Ex: Bruno Schmidt" required>
                         
                         <label for="email_cad">Email</label>
-                        <input type="email" id="email_cad" name="email" placeholder="seu@email.com" required>
+                        <input type="email" id="email_cad" name="email" placeholder="your@email.com" required>
 
                         <label for="senha_cad">Password</label>
-                        <input type="password" id="senha_cad" name="senha" placeholder="Crie uma senha forte" required>
+                        <input type="password" id="senha_cad" name="senha" placeholder="Create a strong password" required>
 
                         <button type="submit" class="btn-submit">Create Account</button>
                     </form>
@@ -219,16 +219,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        function mudarAba(tipo) {
+        function switchTab(type) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.form-content').forEach(form => form.classList.remove('active'));
 
-            if (tipo === 'login') {
+            if (type === 'login') {
                 document.querySelectorAll('.tab-btn')[0].classList.add('active');
                 document.getElementById('form-login').classList.add('active');
             } else {
                 document.querySelectorAll('.tab-btn')[1].classList.add('active');
-                document.getElementById('form-cadastro').classList.add('active');
+                document.getElementById('form-register').classList.add('active');
             }
         }
     </script>
