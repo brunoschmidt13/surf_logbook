@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.35); box-sizing: border-box;
         }
         .logo-area { text-align: center; margin-bottom: 30px; }
-        .logo-main { font-size: 26px; font-weight: bold; color: #0084b4; line-height: 1; }
+        .logo-main { font-size: 28px; font-weight: 800; color: #0284c7; }
         .logo-sub { margin-top: 4px; margin-left: 12px; font-size: 12px; letter-spacing: 7px; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); line-height: 1; }
         .tabs { display: flex; border-bottom: 2px solid rgba(0, 0, 0, 0.08); margin-bottom: 25px; }
         .tab-btn { flex: 1; text-align: center; padding: 10px 0; background: none; border: none; font-size: 15px; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s ease; }
