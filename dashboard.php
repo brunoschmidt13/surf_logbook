@@ -107,7 +107,9 @@ $sessoes = $stmt_sessoes->fetchAll();
             width: 100%;
             height: 100%;
             z-index: -1;
-            background-image: url('img/dash_background.jpg'); 
+            background-image: 
+                radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.5) 70%),
+                url('img/dash_background.jpg');
             background-size: cover;       
             background-position: center;  
             background-repeat: no-repeat;
@@ -121,7 +123,7 @@ $sessoes = $stmt_sessoes->fetchAll();
         justify-content: space-between; 
         align-items: center; 
         border-bottom: 1px solid #e2e8f0; 
-    }
+        }
 
         .logo { 
             text-align: center; 
@@ -258,7 +260,6 @@ $sessoes = $stmt_sessoes->fetchAll();
         margin-bottom: 40px; 
         }
         
-        /* Cards com leve transparência para combinar com o fundo */
         .widget-card { 
         background: rgba(255, 255, 255, 0.88); 
         backdrop-filter: blur(6px); 
