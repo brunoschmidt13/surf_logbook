@@ -2,7 +2,7 @@
 /**
  * ====================================================================
  * FILE: dashboard.php
- * PURPOSE: Main User Dashboard - View Surf Logbook
+ * PURPOSE: Main User Dashboard - View Surf Logbook & Crew System
  * ====================================================================
  */
 
@@ -82,6 +82,40 @@ $stmt_sessoes = $pdo->prepare("
 ");
 $stmt_sessoes->execute([$usuario_id]);
 $sessoes = $stmt_sessoes->fetchAll();
+
+// ============= 5. FRIENDS SYSTEM DATA FETCH =============
+// A. Pedidos recebidos pendentes (Para aceitar ou recusar)
+$stmt_notif = $pdo->prepare("
+    SELECT a.id, u.nome, u.id as amigo_id 
+    FROM amizades a 
+    JOIN usuarios u ON a.usuario_origem_id = u.id 
+    WHERE a.usuario_destino_id = ? AND a.status = 'pendente'
+");
+$stmt_notif->execute([$usuario_id]);
+$pedidos_pendentes = $stmt_notif->fetchAll();
+
+// B. Notificações de pedidos enviados que foram ACEITOS pelo outro surfista
+$stmt_aceitos = $pdo->prepare("
+    SELECT a.id, u.nome 
+    FROM amizades a 
+    JOIN usuarios u ON a.usuario_destino_id = u.id 
+    WHERE a.usuario_origem_id = ? AND a.status = 'aceito' AND a.notificacao_lida_origem = 0
+");
+$stmt_aceitos->execute([$usuario_id]);
+$alertas_aceitos = $stmt_aceitos->fetchAll();
+
+// C. Lista Completa de Amigos Confirmados
+$stmt_lista = $pdo->prepare("
+    SELECT a.id as amizade_id, u.id, u.nome 
+    FROM amizades a
+    JOIN usuarios u ON (a.usuario_origem_id = u.id OR a.usuario_destino_id = u.id)
+    WHERE (a.usuario_origem_id = ? OR a.usuario_destino_id = ?) 
+      AND a.status = 'aceito' 
+      AND u.id != ?
+    ORDER BY u.nome ASC
+");
+$stmt_lista->execute([$usuario_id, $usuario_id, $usuario_id]);
+$lista_amigos = $stmt_lista->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -89,6 +123,8 @@ $sessoes = $stmt_sessoes->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TheSurfChronicles - Dashboard</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="shortcut icon" href="/favicon.ico">
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -117,12 +153,12 @@ $sessoes = $stmt_sessoes->fetchAll();
         }
 
         .navbar { 
-        background-color: #ffffff; 
-        padding: 20px 40px; 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        border-bottom: 1px solid #e2e8f0; 
+            background-color: #ffffff; 
+            padding: 20px 40px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #e2e8f0; 
         }
 
         .logo { 
@@ -208,6 +244,22 @@ $sessoes = $stmt_sessoes->fetchAll();
             font-size: 14px; 
         }
 
+        .user-meta-block {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+            margin-top: 4px; /* Ajuste ligeiramente abaixo mantido */
+        }
+
+        .user-id-tag {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 700;
+            margin-top: 2px;
+            letter-spacing: 0.5px;
+        }
+
         .logout-btn { 
             color: #64748b; 
             text-decoration: none; 
@@ -219,9 +271,9 @@ $sessoes = $stmt_sessoes->fetchAll();
         }
 
         .main-container { 
-        max-width: 1000px; 
-        margin: 40px auto; 
-        padding: 0 20px; 
+            max-width: 1000px; 
+            margin: 40px auto; 
+            padding: 0 20px; 
         }
 
         .welcome-section { 
@@ -232,21 +284,21 @@ $sessoes = $stmt_sessoes->fetchAll();
         }
 
         .welcome-section h1 { 
-        margin: 0; 
-        font-size: 28px; 
-        color: #0f172a; 
+            margin: 0; 
+            font-size: 28px; 
+            color: #0f172a; 
         }
         
         .btn-primary { 
-        background-color: #0084b4; 
-        color: white; 
-        border: none; 
-        padding: 10px 20px; 
-        border-radius: 8px; 
-        font-weight: 600; 
-        cursor: pointer; 
-        text-decoration: none; 
-        display: inline-block;
+            background-color: #0084b4; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            text-decoration: none; 
+            display: inline-block;
         }
 
         .btn-primary:hover { 
@@ -254,77 +306,77 @@ $sessoes = $stmt_sessoes->fetchAll();
         }
         
         .dashboard-widgets { 
-        display: grid; 
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-        gap: 20px; 
-        margin-bottom: 40px; 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 20px; 
+            margin-bottom: 40px; 
         }
         
         .widget-card { 
-        background: rgba(255, 255, 255, 0.88); 
-        backdrop-filter: blur(6px); 
-        padding: 20px; 
-        border-radius: 12px; 
-        border: 1px solid #e2e8f0; 
-        display: flex; 
-        align-items: center; 
-        gap: 15px; 
-        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); 
+            background: rgba(255, 255, 255, 0.88); 
+            backdrop-filter: blur(6px); 
+            padding: 20px; 
+            border-radius: 12px; 
+            border: 1px solid #e2e8f0; 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); 
         }
 
         .widget-icon { 
-        font-size: 26px; 
-        padding: 8px; 
-        border-radius: 10px; 
-        display: flex; 
-        justify-content: center; 
-        align-items: center; 
-        width: 38px; 
-        height: 38px; 
+            font-size: 26px; 
+            padding: 8px; 
+            border-radius: 10px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            width: 38px; 
+            height: 38px; 
         }
 
         .icon-blue { 
-        background: #e0f2fe; 
-        color: #0284c7; 
+            background: #e0f2fe; 
+            color: #0284c7; 
         }
 
         .icon-amber { 
-        background: #fef3c7; 
-        color: #d97706; 
+            background: #fef3c7; 
+            color: #d97706; 
         }
 
         .icon-emerald { 
-        background: #dcfce7; 
-        color: #059669; 
+            background: #dcfce7; 
+            color: #059669; 
         }
 
         .widget-info { 
-        display: flex; 
-        flex-direction: column; 
+            display: flex; 
+            flex-direction: column; 
         }
 
         .widget-label { 
-        font-size: 11px; 
-        text-transform: uppercase; 
-        color: #94a3b8; 
-        font-weight: 700; 
-        letter-spacing: 0.5px; 
+            font-size: 11px; 
+            text-transform: uppercase; 
+            color: #94a3b8; 
+            font-weight: 700; 
+            letter-spacing: 0.5px; 
         }
 
         .widget-value { 
-        font-size: 22px; 
-        font-weight: bold; 
-        color: #0f172a; 
-        margin-top: 3px; 
+            font-size: 22px; 
+            font-weight: bold; 
+            color: #0f172a; 
+            margin-top: 3px; 
         }
         
         .section-title { 
-        font-size: 14px; 
-        text-transform: uppercase; 
-        color: #64748b; 
-        font-weight: 700; 
-        margin-bottom: 15px; 
-        letter-spacing: 0.5px; 
+            font-size: 14px; 
+            text-transform: uppercase; 
+            color: #64748b; 
+            font-weight: 700; 
+            margin-bottom: 15px; 
+            letter-spacing: 0.5px; 
         }
         
         .content-box { 
@@ -334,201 +386,229 @@ $sessoes = $stmt_sessoes->fetchAll();
             border: 1px solid #e2e8f0; 
             padding: 25px; 
             margin-bottom: 40px; 
-            }
+        }
 
         .board-item { 
-        display: flex; 
-        justify-content: space-between; 
-        align-items: center; 
-        padding: 15px 0; 
-        border-bottom: 1px solid #f1f5f9; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 15px 0; 
+            border-bottom: 1px solid #f1f5f9; 
         }
 
         .board-item:last-child { 
-        border-bottom: none; 
+            border-bottom: none; 
         }
 
         .board-info h3 { 
-        margin: 0; 
-        font-size: 16px; 
-        color: #0f172a; 
+            margin: 0; 
+            font-size: 16px; 
+            color: #0f172a; 
         }
 
         .board-info p { 
-        margin: 5px 0 0 0; 
-        font-size: 14px; 
-        color: #64748b; 
+            margin: 5px 0 0 0; 
+            font-size: 14px; 
+            color: #64748b; 
         }
         
         .session-item { 
-        border-bottom: 1px solid #f1f5f9; 
-        padding: 20px 0; 
+            border-bottom: 1px solid #f1f5f9; 
+            padding: 20px 0; 
         }
 
         .session-item:last-child { 
-        border-bottom: none; 
+            border-bottom: none; 
         }
 
         .session-meta { 
-        font-size: 13px; 
-        color: #64748b; 
-        margin-bottom: 8px; 
+            font-size: 13px; 
+            color: #64748b; 
+            margin-bottom: 8px; 
         }
 
         .session-location { 
-        font-size: 16px; 
-        font-weight: bold; 
-        color: #0f172a; 
-        margin-bottom: 6px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            color: #0f172a; 
+            margin-bottom: 6px; 
         }
 
         .session-location span { 
-        color: #64748b; 
-        font-weight: normal; 
-        font-size: 14px; 
+            color: #64748b; 
+            font-weight: normal; 
+            font-size: 14px; 
         }
 
         .session-details { 
-        font-size: 14px; 
-        color: #475569; 
-        line-height: 1.6; 
+            font-size: 14px; 
+            color: #475569; 
+            line-height: 1.6; 
         }
 
         .modal-info-login { 
-        position: fixed; 
-        z-index: 9999; 
-        left: 0; 
-        top: 0; 
-        width: 100%; 
-        height: 100%; 
-        background-color: rgba(15, 23, 42, 0.7); 
-        backdrop-filter: blur(5px); 
-        display: flex; 
-        justify-content: center; 
-        align-items: center; 
+            position: fixed; 
+            z-index: 9999; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(15, 23, 42, 0.7); 
+            backdrop-filter: blur(5px); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
         }
 
         .info-login-content {
-        background-color: white; 
-        padding: 35px; 
-        border-radius: 16px; 
-        width: 90%; 
-        max-width: 420px; 
-        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); 
-        text-align: center; 
-        animation: popupSuave 0.3s ease-out; 
+            background-color: white; 
+            padding: 35px; 
+            border-radius: 16px; 
+            width: 90%; 
+            max-width: 420px; 
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.15); 
+            text-align: center; 
+            animation: popupSuave 0.3s ease-out; 
         }
 
         @keyframes popupSuave { 
-        from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } 
+            from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } 
         }
 
         .info-login-content h2 { 
-        margin-top: 0; 
-        color: #0f172a; 
-        font-size: 22px; 
+            margin-top: 0; 
+            color: #0f172a; 
+            font-size: 22px; 
         }
 
         .info-login-content p { 
-        color: #475569; 
-        font-size: 15px; 
-        line-height: 1.6; 
-        margin: 15px 0 25px 0; 
+            color: #475569; 
+            font-size: 15px; 
+            line-height: 1.6; 
+            margin: 15px 0 25px 0; 
         }
 
         .btn-vamos-la { 
-        background-color: #0084b4; 
-        color: white; 
-        border: none; 
-        padding: 12px 30px; 
-        border-radius: 8px; 
-        font-weight: 600; 
-        font-size: 15px; 
-        cursor: pointer; 
-        width: 100%; 
-        transition: background 0.2s; 
+            background-color: #0084b4; 
+            color: white; 
+            border: none; 
+            padding: 12px 30px; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            font-size: 15px; 
+            cursor: pointer; 
+            width: 100%; 
+            transition: background 0.2s; 
         }
 
         .btn-vamos-la:hover { 
-        background-color: #006b93; 
+            background-color: #006b93; 
         }
 
         .modal { 
-        display: none; 
-        position: fixed; 
-        z-index: 1000; 
-        left: 0; 
-        top: 0; 
-        width: 100%; 
-        height: 100%; 
-        background-color: rgba(0,0,0,0.4); 
-        justify-content: center; 
-        align-items: center; 
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.4); 
+            justify-content: center; 
+            align-items: center; 
         }
 
         .modal-content { 
-        background-color: white; 
-        padding: 30px; 
-        border-radius: 12px; 
-        width: 100%; 
-        max-width: 500px; 
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
-        position: relative; 
+            background-color: white; 
+            padding: 30px; 
+            border-radius: 12px; 
+            width: 100%; 
+            max-width: 500px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
+            position: relative; 
         }
 
         .close-btn { 
-        position: absolute; 
-        right: 20px; 
-        top: 15px; 
-        font-size: 24px; 
-        cursor: pointer; 
-        color: #94a3b8; 
+            position: absolute; 
+            right: 20px; 
+            top: 15px; 
+            font-size: 24px; 
+            cursor: pointer; 
+            color: #94a3b8; 
         }
 
         .form-grid { 
-        display: grid; 
-        grid-template-columns: 1fr 1fr; 
-        gap: 15px; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
         }
 
         .full-width { 
-        grid-column: span 2; 
+            grid-column: span 2; 
         }
 
         .form-modal label { 
-        display: block; 
-        margin-bottom: 5px; 
-        color: #475569; 
-        font-size: 14px; 
-        font-weight: 600; 
+            display: block; 
+            margin-bottom: 5px; 
+            color: #475569; 
+            font-size: 14px; 
+            font-weight: 600; 
         }
 
         .form-modal input, .form-modal select, .form-modal textarea { 
-        width: 100%; 
-        padding: 10px; 
-        margin-bottom: 15px; 
-        border: 1px solid #cbd5e1; 
-        border-radius: 6px; 
-        box-sizing: border-box; 
-        font-family: inherit; 
+            width: 100%; 
+            padding: 10px; 
+            margin-bottom: 15px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-family: inherit; 
         }
 
         .rating-select { 
-        display: flex; 
-        gap: 5px; 
-        font-size: 24px; 
-        cursor: pointer; 
-        margin-bottom: 15px;
-        color: #cbd5e1; 
+            display: flex; 
+            gap: 5px; 
+            font-size: 24px; 
+            cursor: pointer; 
+            margin-bottom: 15px;
+            color: #cbd5e1; 
         }
 
         .rating-select span:hover, .rating-select span.active { 
-        color: #0084b4; 
+            color: #0084b4; 
         }
         
     </style>
 </head>
 <body>
+
+    <?php if (isset($_GET['erro'])): ?>
+        <div style="background-color: #fef2f2; color: #b91c1c; padding: 12px 20px; text-align: center; font-weight: 600; font-size: 14px; border-bottom: 1px solid #fee2e2; position: relative; z-index: 9999;">
+            ⚠️ <?= htmlspecialchars($_GET['erro']) ?>
+        </div>
+    <?php endif; ?>
+    <?php if (isset($_GET['sucesso'])): ?>
+        <div style="background-color: #f0fdf4; color: #15803d; padding: 12px 20px; text-align: center; font-weight: 600; font-size: 14px; border-bottom: 1px solid #dcfce7; position: relative; z-index: 9999;">
+            🤙 <?= htmlspecialchars($_GET['sucesso']) ?>
+        </div>
+    <?php endif; ?>
+
+    <?php foreach ($alertas_aceitos as $alerta): ?>
+        <div style="background-color: #e0f2fe; color: #0369a1; padding: 12px 20px; text-align: center; font-weight: 600; font-size: 14px; border-bottom: 1px solid #bae6fd; position: relative; z-index: 9998;">
+            🎉 <strong><?= htmlspecialchars($alerta['nome']) ?></strong> accepted your friend request! You are now surf buddies.
+            <a href="acoes_amigo.php?acao=limpar_aviso&id=<?= $alerta['id'] ?>" style="margin-left: 15px; color: #0284c7; text-decoration: underline; font-size: 12px;">Dismiss</a>
+        </div>
+    <?php endforeach; ?>
+
+    <?php foreach ($pedidos_pendentes as $pedido): ?>
+        <div style="background-color: #fffbeb; color: #b45309; padding: 12px 20px; text-align: center; font-weight: 600; font-size: 14px; border-bottom: 1px solid #fef3c7; display: flex; justify-content: center; align-items: center; gap: 15px; position: relative; z-index: 9998;">
+            <span>🤝 <strong><?= htmlspecialchars($pedido['nome']) ?> (#<?= $pedido['amigo_id'] ?>)</strong> sent you a friend request!</span>
+            <div>
+                <a href="acoes_amigo.php?acao=aceitar&id=<?= $pedido['id'] ?>" style="background: #d97706; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; margin-right: 5px;">Accept</a>
+                <a href="acoes_amigo.php?acao=recusar&id=<?= $pedido['id'] ?>" style="background: #cbd5e1; color: #475569; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px;">Decline</a>
+            </div>
+        </div>
+    <?php endforeach; ?>
 
     <?php if ($exibir_informativo): ?>
     <div id="modalInformativoLogin" class="modal-info-login">
@@ -566,7 +646,12 @@ $sessoes = $stmt_sessoes->fetchAll();
             ?>
                 <a href="admin.php" style="color: #ef4444; font-weight: bold; text-decoration: none; margin-right: 15px;">⚙️ Admin Panel</a>
             <?php endif; ?>
-            <span>@<?= htmlspecialchars($usuario_nome) ?></span>
+            
+            <div class="user-meta-block">
+                <span style="font-weight: 600; color: #1e293b;">@<?= htmlspecialchars($usuario_nome) ?></span>
+                <span class="user-id-tag">#<?= $usuario_id ?></span>
+            </div>
+            
             <a href="logout.php" class="logout-btn">Log out ↗</a>
         </div>
     </div>
@@ -628,6 +713,42 @@ $sessoes = $stmt_sessoes->fetchAll();
             </div>
         </div>
 
+        <div class="section-title">Surf Crew & Buddies</div>
+        <div class="content-box" style="padding: 25px;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="margin: 0 0 4px 0; font-size: 16px; color: #0f172a;">Add to Crew</h3>
+                    <p style="margin: 0; font-size: 13px; color: #64748b;">Enter a friend's #ID to compare statistics and share line-ups.</p>
+                </div>
+                <form action="acoes_amigo.php?acao=enviar" method="POST" style="display: flex; gap: 10px; width: 300px; max-width: 100%; margin:0;">
+                    <input type="number" name="amigo_id" placeholder="Ex: 14" required style="margin:0; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; font-family: inherit;">
+                    <button type="submit" class="btn-primary" style="padding: 10px 15px;">Send Request</button>
+                </form>
+            </div>
+
+            <div>
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">My Friends</h4>
+                <?php if (empty($lista_amigos)): ?>
+                    <p style="color: #64748b; margin: 0; font-size: 14px;">Your crew is empty. Use the input above to add buddies!</p>
+                <?php else: ?>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <?php foreach ($lista_amigos as $amigo): ?>
+                            <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px 18px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                <div style="font-weight: 600; color: #0f172a;">
+                                    👤 <?= htmlspecialchars($amigo['nome']) ?> 
+                                    <span style="font-size: 11px; color: #94a3b8; font-weight: normal; margin-left: 5px;">#<?= $amigo['id'] ?></span>
+                                </div>
+                                <a href="amigo.php?id=<?= $amigo['id'] ?>" class="btn-primary" style="padding: 6px 12px; font-size: 12px; background-color: #0284c7; display: inline-flex; align-items: center; gap: 5px;">
+                                    📊 Compare Logs
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+        </div>
         <div class="section-title">My Surfboards</div>
         <div class="content-box">
             <?php if (empty($pranchas)): ?>

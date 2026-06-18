@@ -2,14 +2,14 @@
 /**
  * ====================================================================
  * FILE: index.php
- * PURPOSE: Login and Registration Page - Gateway to SurfLog
+ * PURPOSE: Ultimate All-In-One Gateway (Login, Register, Recover & Reset)
  * ====================================================================
  */
 
 require_once 'config/conexao.php';
 session_start();
 
-// If user is already logged in, redirect directly to dashboard
+// Se o usuário já estiver logado, joga para a dashboard
 if (isset($_SESSION['usuario_id'])) {
     header("Location: dashboard.php");
     exit;
@@ -18,47 +18,86 @@ if (isset($_SESSION['usuario_id'])) {
 $erro = '';
 $sucesso = '';
 
+// Descobre qual visual exibir baseado na URL (Modos: login, register, forgot, reset)
+$modo = filter_input(INPUT_GET, 'modo', FILTER_DEFAULT) ?? 'login';
+$token_url = filter_input(INPUT_GET, 'token', FILTER_DEFAULT);
+
+// Se houver um token válido na URL, força o modo a ser 'reset' (Nova Senha)
+if ($token_url) {
+    $modo = 'reset';
+    // Valida imediatamente se o token existe e não expirou
+    $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE token_recuperacao = ? AND token_expira_em > NOW()");
+    $stmt->execute([$token_url]);
+    $usuario_token = $stmt->fetch();
+    
+    if (!$usuario_token) {
+        $erro = "This recovery token is invalid or has expired. Please request a new link.";
+        $modo = 'forgot'; // Devolve para a tela de pedir link
+    }
+}
+
+// ====================================================================
+// PROCESSAMENTO DOS FORMULÁRIOS (POST)
+// ====================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $acao = $_POST['acao'] ?? '';
 
-    // ============= REGISTRATION BLOCK =============
+    // 1. AÇÃO: CADASTRAR
     if ($acao === 'cadastrar') {
+        $modo = 'register'; // Mantém a aba ativa se der erro
         $nome = filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS);
+        
+        // Sanitiza e força o e-mail a ficar totalmente em letras minúsculas e sem espaços
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+        if ($email) {
+            $email = strtolower(trim($email));
+        }
+        
         $senha = $_POST['senha'];
 
         if ($nome && $email && $senha) {
-            $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+            // VALIDAÇÃO CRÍTICA: Verifica se o e-mail já existe na tabela de usuários
+            $stmt_check = $pdo->prepare("SELECT id FROM usuarios WHERE LOWER(email) = ?");
+            $stmt_check->execute([$email]);
             
-            try {
-                $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
-                $stmt->execute([$nome, $email, $senha_hash]);
-                $sucesso = "Account created successfully! Please log in.";
-            } catch (PDOException $e) {
-                $erro = "This email is already registered.";
+            if ($stmt_check->rowCount() > 0) {
+                // Se encontrar qualquer registro, bloqueia o cadastro imediatamente
+                $erro = "This email is already registered. Try logging in!";
+            } else {
+                // Se estiver livre, prossegue com a criptografia e inserção
+                $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
+                    $stmt->execute([$nome, $email, $senha_hash]);
+                    $sucesso = "Account created successfully! Please log in.";
+                    $modo = 'login'; // Muda a interface dinamicamente para o login
+                } catch (PDOException $e) {
+                    $erro = "An error occurred. Please try again.";
+                }
             }
         } else {
-            $erro = "Please fill all fields correctly.";
+            $erro = "Please fill all fields correctly with a valid email.";
         }
     } 
     
-    // ============= LOGIN BLOCK =============
+    // 2. AÇÃO: LOGIN
     if ($acao === 'login') {
+        $modo = 'login';
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+        if ($email) {
+            $email = strtolower(trim($email));
+        }
         $senha = $_POST['senha'];
 
         if ($email && $senha) {
-            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
+            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE LOWER(email) = ?");
             $stmt->execute([$email]);
             $usuario = $stmt->fetch();
 
             if ($usuario && password_verify($senha, $usuario['senha'])) {
                 $_SESSION['usuario_id'] = $usuario['id'];
                 $_SESSION['usuario_nome'] = $usuario['nome'];
-
-                // Activates the floating notice exclusively for the first load after login
                 $_SESSION['mostrar_aviso'] = true;
-
                 header("Location: dashboard.php");
                 exit;
             } else {
@@ -66,6 +105,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } else {
             $erro = "Please enter a valid email.";
+        }
+    }
+
+    // 3. AÇÃO: SOLICITAR RECUPERAÇÃO (ESQUECI A SENHA)
+    if ($acao === 'solicitar_recuperacao') {
+        $modo = 'forgot';
+        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+        if ($email) {
+            $email = strtolower(trim($email));
+        }
+
+        if ($email) {
+            $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE LOWER(email) = ?");
+            $stmt->execute([$email]);
+            $usuario = $stmt->fetch();
+
+            if ($usuario) {
+                $token = bin2hex(random_bytes(32));
+                $expira = date('Y-m-d H:i:s', strtotime('+1 hour'));
+                
+                $stmt_update = $pdo->prepare("UPDATE usuarios SET token_recuperacao = ?, token_expira_em = ? WHERE id = ?");
+                $stmt_update->execute([$token, $expira, $usuario['id']]);
+                
+                // O link agora aponta para o PRÓPRIO arquivo index.php passando o token por GET de forma dinâmica
+                $protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+                $url_atual = $protocolo . $_SERVER['HTTP_HOST'] . $_SERVER['SCRIPT_NAME'];
+                $link = $url_atual . "?token=" . $token;
+                
+                $sucesso = "Simulation: Recovery link generated!<br><br>
+                            <a href='$link' style='color: #22c55e; font-weight: bold; word-break: break-all;'>Click here to reset password</a>";
+            } else {
+                $sucesso = "If this e-mail is registered, a recovery link has been generated.";
+            }
+        } else {
+            $erro = "Please enter a valid email.";
+        }
+    }
+
+    // 4. AÇÃO: DEFINIR NOVA SENHA
+    if ($acao === 'atualizar_senha') {
+        $modo = 'reset';
+        $token_post = filter_input(INPUT_POST, 'token_confirmacao', FILTER_DEFAULT);
+        $nova_senha = $_POST['nova_senha'] ?? '';
+        $confirma_senha = $_POST['confirma_senha'] ?? '';
+
+        // Revalida o token enviado pelo formulário oculto
+        $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE token_recuperacao = ? AND token_expira_em > NOW()");
+        $stmt->execute([$token_post]);
+        $usuario_confirmado = $stmt->fetch();
+
+        if ($usuario_confirmado) {
+            if (strlen($nova_senha) >= 6) {
+                if ($nova_senha === $confirma_senha) {
+                    $nova_senha_hash = password_hash($nova_senha, PASSWORD_DEFAULT);
+                    
+                    $stmt_update = $pdo->prepare("UPDATE usuarios SET senha = ?, token_recuperacao = NULL, token_expira_em = NULL WHERE id = ?");
+                    $stmt_update->execute([$nova_senha_hash, $usuario_confirmado['id']]);
+                    
+                    $sucesso = "Password updated successfully! You can log in now.";
+                    $modo = 'login';
+                } else {
+                    $erro = "Passwords do not match.";
+                }
+            } else {
+                $erro = "The password must be at least 6 characters long.";
+            }
+        } else {
+            $erro = "Invalid token session or expired link.";
+            $modo = 'forgot';
         }
     }
 }
@@ -76,11 +184,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TheSurfChronicles - Welcome</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="shortcut icon" href="/favicon.ico">
     <style>
         html, body {
             margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f172a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a;
         }
         .bg-container {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1;
@@ -89,8 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .bg-container::after {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, transparent 30%, rgba(15, 23, 42, 0.85) 95%);
-            pointer-events: none;
+            background: radial-gradient(circle, transparent 30%, rgba(15, 23, 42, 0.85) 95%); pointer-events: none;
         }
         .main-wrapper {
             position: relative; z-index: 10; width: 105%; height: 100%;
@@ -101,11 +209,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .info-title { font-size: 54px; font-weight: 800; line-height: 1.1; margin: 0 0 20px 0; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
         .info-subtitle { font-size: 18px; line-height: 1.6; color: rgba(255, 255, 255, 0.85); margin-bottom: 40px; max-width: 500px; }
         .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 650px; }
-        .feature-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.15); padding: 20px; border-radius: 12px; }
+        .feature-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(5px); border: 1px solid rgba(255, 255, 255, 0.15); padding: 20px; border-radius: 12px; }
         .feature-icon { font-size: 20px; margin-bottom: 12px; }
         .feature-card h3 { margin: 0 0 6px 0; font-size: 15px; font-weight: 600; }
         .feature-card p { margin: 0; font-size: 12px; color: rgba(255, 255, 255, 0.7); line-height: 1.4; }
         .form-column { display: flex; justify-content: center; align-items: center; padding-right: 15%; }
+        
         .login-card {
             background: rgba(255, 255, 255, 0.45); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(20px);
             padding: 40px 35px; border-radius: 16px; width: 100%; max-width: 380px;
@@ -114,19 +223,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .logo-area { text-align: center; margin-bottom: 30px; }
         .logo-main { font-size: 28px; font-weight: 800; color: #0284c7; }
         .logo-sub { margin-top: 4px; margin-left: 12px; font-size: 12px; letter-spacing: 7px; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); line-height: 1; }
+        
         .tabs { display: flex; border-bottom: 2px solid rgba(0, 0, 0, 0.08); margin-bottom: 25px; }
         .tab-btn { flex: 1; text-align: center; padding: 10px 0; background: none; border: none; font-size: 15px; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s ease; }
         .tab-btn.active { color: #0084b4; border-bottom: 2px solid #0084b4; margin-bottom: -2px; }
+        
         .form-content { display: none; }
         .form-content.active { display: block; }
+        
         label { display: block; font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 6px; }
         input { width: 100%; padding: 11px; margin-bottom: 18px; border: 1px solid rgba(0, 0, 0, 0.15); border-radius: 8px; box-sizing: border-box; font-size: 14px; background: rgba(255, 255, 255, 0.75); color: #0f172a; }
         input:focus { outline: none; border-color: #0084b4; background: #ffffff; }
+        
+        .forgot-password-wrapper { text-align: right; margin-top: -12px; margin-bottom: 18px; }
+        .forgot-password-link { font-size: 12px; color: #0f172a; text-decoration: none; font-weight: 600; }
+        .forgot-password-link:hover { color: #006b93; text-decoration: underline; }
+        
         .btn-submit { width: 100%; background-color: #0084b4; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
         .btn-submit:hover { background-color: #006b93; }
-        .msg { padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; text-align: center; }
+        .btn-green { background-color: #22c55e; }
+        .btn-green:hover { background-color: #16a34a; }
+        
+        .back-link { display: block; text-align: center; font-size: 13px; color: #0f172a; text-decoration: none; font-weight: 600; margin-top: 15px; }
+        .back-link:hover { text-decoration: underline; color: #006b93; }
+        
+        .card-desc { font-size: 13px; color: #1e293b; margin-bottom: 20px; text-align: center; line-height: 1.4; font-weight: 500; }
+        .msg { padding: 10px; border-radius: 6px; font-size: 13px; margin-bottom: 15px; text-align: center; line-height: 1.4; word-break: break-all; }
         .msg-error { background-color: #fee2e2; color: #ef4444; }
-        .msg-success { background-color: #dcfce7; color: #22c55e; }
+        .msg-success { background-color: #dcfce7; color: #14532d; border: 1px solid #bbf7d0; }
 
         @media (max-width: 1024px) {
             .main-wrapper { grid-template-columns: 1fr; overflow-y: auto; }
@@ -179,41 +303,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="msg msg-success"><?= $sucesso ?></div>
                 <?php endif; ?>
 
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('login')">Login</button>
-                    <button class="tab-btn" onclick="switchTab('register')">Sign Up</button>
-                </div>
+                <?php if ($modo === 'login' || $modo === 'register'): ?>
+                    <div class="tabs">
+                        <button class="tab-btn <?= $modo === 'login' ? 'active' : '' ?>" onclick="switchTab('login')">Login</button>
+                        <button class="tab-btn <?= $modo === 'register' ? 'active' : '' ?>" onclick="switchTab('register')">Sign Up</button>
+                    </div>
 
-                <div id="form-login" class="form-content active">
-                    <form action="index.php" method="POST">
-                        <input type="hidden" name="acao" value="login">
-                        
-                        <label for="email_login">Email</label>
-                        <input type="email" id="email_login" name="email" placeholder="your@email.com" required>
+                    <div id="form-login" class="form-content <?= $modo === 'login' ? 'active' : '' ?>">
+                        <form action="index.php?modo=login" method="POST">
+                            <input type="hidden" name="acao" value="login">
+                            
+                            <label for="email_login">Email</label>
+                            <input type="email" id="email_login" name="email" placeholder="your@email.com" required>
 
-                        <label for="senha_login">Password</label>
-                        <input type="password" id="senha_login" name="senha" placeholder="••••••••" required>
+                            <label for="senha_login">Password</label>
+                            <input type="password" id="senha_login" name="senha" placeholder="••••••••" required>
 
-                        <button type="submit" class="btn-submit">Log In</button>
-                    </form>
-                </div>
+                            <div class="forgot-password-wrapper">
+                                <a href="index.php?modo=forgot" class="forgot-password-link">Forgot password?</a>
+                            </div>
 
-                <div id="form-register" class="form-content">
-                    <form action="index.php" method="POST">
-                        <input type="hidden" name="acao" value="cadastrar">
+                            <button type="submit" class="btn-submit">Log In</button>
+                        </form>
+                    </div>
 
-                        <label for="nome_cad">Full Name</label>
-                        <input type="text" id="nome_cad" name="nome" placeholder="Ex: Bruno Schmidt" required>
-                        
-                        <label for="email_cad">Email</label>
-                        <input type="email" id="email_cad" name="email" placeholder="your@email.com" required>
+                    <div id="form-register" class="form-content <?= $modo === 'register' ? 'active' : '' ?>">
+                        <form action="index.php?modo=register" method="POST">
+                            <input type="hidden" name="acao" value="cadastrar">
 
-                        <label for="senha_cad">Password</label>
-                        <input type="password" id="senha_cad" name="senha" placeholder="Create a strong password" required>
+                            <label for="nome_cad">Full Name</label>
+                            <input type="text" id="nome_cad" name="nome" placeholder="Ex: Bruno Schmidt" required>
+                            
+                            <label for="email_cad">Email</label>
+                            <input type="email" id="email_cad" name="email" placeholder="your@email.com" required>
 
-                        <button type="submit" class="btn-submit">Create Account</button>
-                    </form>
-                </div>
+                            <label for="senha_cad">Password</label>
+                            <input type="password" id="senha_cad" name="senha" placeholder="Create a strong password" required>
+
+                            <button type="submit" class="btn-submit">Create Account</button>
+                        </form>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($modo === 'forgot'): ?>
+                    <div id="form-forgot">
+                        <form action="index.php?modo=forgot" method="POST">
+                            <input type="hidden" name="acao" value="solicitar_recuperacao">
+                            
+                            <div class="card-desc" style="text-align: center; font-weight: bold; font-size: 15px; margin-bottom: 5px;">Recover Password</div>
+                            <div class="card-desc">Enter your email below. We'll generate a secure token so you can choose a new password.</div>
+                            
+                            <label for="email_forgot">Your Email Address</label>
+                            <input type="email" id="email_forgot" name="email" placeholder="your@email.com" required>
+
+                            <button type="submit" class="btn-submit">Generate Reset Link</button>
+                            <a href="index.php?modo=login" class="back-link">← Back to Login</a>
+                        </form>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($modo === 'reset' && !empty($token_url)): ?>
+                    <div id="form-reset">
+                        <form action="index.php?token=<?= urlencode($token_url) ?>" method="POST">
+                            <input type="hidden" name="acao" value="atualizar_senha">
+                            <input type="hidden" name="token_confirmacao" value="<?= htmlspecialchars($token_url) ?>">
+                            
+                            <div class="card-desc" style="text-align: center; font-weight: bold; font-size: 15px; margin-bottom: 10px;">🔑 Choose New Password</div>
+                            
+                            <label for="nova_senha">New Password</label>
+                            <input type="password" id="nova_senha" name="nova_senha" placeholder="At least 6 characters" required>
+
+                            <label for="confirma_senha">Confirm New Password</label>
+                            <input type="password" id="confirma_senha" name="confirma_senha" placeholder="••••••••" required>
+
+                            <button type="submit" class="btn-submit btn-green">Update Password</button>
+                        </form>
+                    </div>
+                <?php endif; ?>
+
             </div>
         </div>
     </div>
@@ -226,9 +393,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (type === 'login') {
                 document.querySelectorAll('.tab-btn')[0].classList.add('active');
                 document.getElementById('form-login').classList.add('active');
+                window.history.replaceState(null, null, "index.php?modo=login");
             } else {
                 document.querySelectorAll('.tab-btn')[1].classList.add('active');
                 document.getElementById('form-register').classList.add('active');
+                window.history.replaceState(null, null, "index.php?modo=register");
             }
         }
     </script>
