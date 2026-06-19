@@ -473,7 +473,7 @@ $lista_amigos = $stmt_lista->fetchAll();
         .session-meta { 
             font-size: 13px; 
             color: #64748b; 
-            margin-bottom: 8px; 
+            margin-bottom: 8px
         }
 
         .session-location { 
@@ -570,9 +570,9 @@ $lista_amigos = $stmt_lista->fetchAll();
         .modal-content { 
             background-color: white; 
             padding: 30px; 
-            border-radius: 12px; 
+            border-radius: 10px; 
             width: 100%; 
-            max-width: 500px; 
+            max-width: 400px; 
             box-shadow: 0 4px 20px rgba(0,0,0,0.1); 
             position: relative; 
         }
@@ -589,7 +589,7 @@ $lista_amigos = $stmt_lista->fetchAll();
         .form-grid { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
-            gap: 15px; 
+            gap: 5px;
         }
 
         .full-width { 
@@ -724,7 +724,7 @@ $lista_amigos = $stmt_lista->fetchAll();
             'new_board' => '+ Nova Prancha',
             'new_session' => '+ Nova Sessão',
             'tot_sessions' => 'Total de Sessões',
-            'water_time' => 'Tempo de Água',
+            'water_time' => 'Tempo de date',
             'avg_rating' => 'Nota Média',
             'longest_session' => 'Sessão Mais Longa',
             'most_used_board' => 'Prancha Mais Usada',
