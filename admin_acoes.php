@@ -4,19 +4,15 @@
  * FILE: admin_acoes.php
  * PURPOSE: Execute Administration Actions (Promote, Demote, Delete)
  * ====================================================================
- * 
- * This file processes admin actions via GET parameters:
- * 
- * Supported Actions:
+ * * This file processes admin actions via GET parameters:
+ * * Supported Actions:
  * 1. toggle_role: Switches between Admin and Regular User
  * 2. delete_user: Completely deletes user and all data
- *    (boards, sessions, etc)
- * 
- * URL Format:
+ * (boards, sessions, etc)
+ * * URL Format:
  * - admin_acoes.php?action=toggle_role&id=123
  * - admin_acoes.php?action=delete_user&id=123
- * 
- * SECURITY: All actions require user to be admin
+ * * SECURITY: All actions require user to be admin
  */
 
 // Imports database connection
@@ -44,6 +40,9 @@ if (!$user_atual || $user_atual['is_admin'] != 1) {
     header("Location: dashboard.php");
     exit;
 }
+
+// Lógica de Idioma baseada na sessão (Disponível caso queira adicionar mensagens na URL futuramente)
+$lang = $_SESSION['lang'] ?? 'en';
 
 // ============= CAPTURE URL PARAMETERS =============
 // Gets 'action' parameter that specifies which action to execute

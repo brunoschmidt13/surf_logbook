@@ -4,17 +4,14 @@
  * FILE: admin_pranchas.php
  * PURPOSE: Manage Boards of a Specific User
  * ====================================================================
- * 
- * This page allows admin to view ALL boards of a
+ * * This page allows admin to view ALL boards of a
  * specific user and delete them if necessary.
- * 
- * Flow:
+ * * Flow:
  * 1. Admin clicks "Boards" of a user in admin.php
  * 2. Gets redirected to admin_pranchas.php?usuario_id=123
  * 3. Sees all boards of that user
  * 4. Can delete individual boards
- * 
- * SECURITY: Requires being admin AND providing valid user ID
+ * * SECURITY: Requires being admin AND providing valid user ID
  */
 
 // Imports database connection
@@ -40,6 +37,47 @@ if (!$user_atual || $user_atual['is_admin'] != 1) {
     header("Location: dashboard.php");
     exit;
 }
+
+// Lógica de Idioma baseada na sessão
+$lang = $_SESSION['lang'] ?? 'en';
+
+$translations = [
+    'en' => [
+        'page_title'      => 'Admin - Boards of',
+        'back_panel'      => '← Back to Panel',
+        'boards_of'       => 'Boards of:',
+        'no_boards'       => 'This user has no boards registered.',
+        'brand'           => 'Brand:',
+        'size'            => 'Size:',
+        'volume'          => 'Volume:',
+        'remove_board'    => '🗑️ Remove Board',
+        'confirm_delete'  => 'Delete this board permanently?'
+    ],
+    'pt' => [
+        'page_title'      => 'Admin - Pranchas de',
+        'back_panel'      => '← Voltar ao Painel',
+        'boards_of'       => 'Pranchas de:',
+        'no_boards'       => 'Este usuário não possui pranchas cadastradas.',
+        'brand'           => 'Marca:',
+        'size'            => 'Tamanho:',
+        'volume'          => 'Volume:',
+        'remove_board'    => '🗑️ Remover Prancha',
+        'confirm_delete'  => 'Excluir esta prancha permanentemente?'
+    ],
+    'es' => [
+        'page_title'      => 'Admin - Tablas de',
+        'back_panel'      => '← Volver al Panel',
+        'boards_of'       => 'Tablas de:',
+        'no_boards'       => 'Este usuario no tiene tablas registradas.',
+        'brand'           => 'Marca:',
+        'size'            => 'Tamaño:',
+        'volume'          => 'Volumen:',
+        'remove_board'    => '🗑️ Eliminar Tabla',
+        'confirm_delete'  => '¿Eliminar esta tabla permanentemente?'
+    ]
+];
+
+$txt = $translations[$lang] ?? $translations['en'];
 
 // ============= VALIDATE TARGET USER ID =============
 // Gets and validates ID of user whose boards we want to see
@@ -96,10 +134,10 @@ $pranchas = $stmt_pranchas->fetchAll();
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $lang ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Boards of <?= htmlspecialchars($usuario_alvo['nome']) ?></title>
+    <title><?= $txt['page_title'] ?> <?= htmlspecialchars($usuario_alvo['nome']) ?></title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; margin: 0; padding: 40px; }
         .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
@@ -115,23 +153,23 @@ $pranchas = $stmt_pranchas->fetchAll();
 
     <div class="header-area">
         <div>
-            <a href="admin.php" class="btn-back">← Back to Panel</a>
-            <h1 style="margin-top:15px;">Boards of: <?= htmlspecialchars($usuario_alvo['nome']) ?></h1>
+            <a href="admin.php" class="btn-back"><?= $txt['back_panel'] ?></a>
+            <h1 style="margin-top:15px;"><?= $txt['boards_of'] ?> <?= htmlspecialchars($usuario_alvo['nome']) ?></h1>
         </div>
     </div>
 
     <?php if(empty($pranchas)): ?>
-        <p style="color: #64748b;">This user has no boards registered.</p>
+        <p style="color: #64748b;"><?= $txt['no_boards'] ?></p>
     <?php else: ?>
         <div class="grid">
             <?php foreach($pranchas as $p): ?>
                 <div class="card">
                     <h3>🏄‍♂️ <?= htmlspecialchars($p['modelo']) ?></h3>
-                    <p><strong>Brand:</strong> <?= htmlspecialchars($p['marca']) ?></p>
-                    <p><strong>Size:</strong> <?= htmlspecialchars($p['tamanho']) ?></p>
-                    <p><strong>Volume:</strong> <?= htmlspecialchars($p['volume']) ?>L</p>
+                    <p><strong><?= $txt['brand'] ?></strong> <?= htmlspecialchars($p['marca']) ?></p>
+                    <p><strong><?= $txt['size'] ?></strong> <?= htmlspecialchars($p['tamanho']) ?></p>
+                    <p><strong><?= $txt['volume'] ?></strong> <?= htmlspecialchars($p['volume']) ?>L</p>
                     <a href="admin_pranchas.php?usuario_id=<?= $usuario_alvo_id ?>&deletar_prancha=<?= $p['id'] ?>" 
-                       class="btn-del" onclick="return confirm('Delete this board permanently?')">🗑️ Remove Board</a>
+                       class="btn-del" onclick="return confirm('<?= addslashes($txt['confirm_delete']) ?>')"><?= $txt['remove_board'] ?></a>
                 </div>
             <?php endforeach; ?>
         </div>

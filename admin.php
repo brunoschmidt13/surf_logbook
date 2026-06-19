@@ -4,8 +4,7 @@
  * FILE: admin.php
  * PURPOSE: Main Administration Panel - User Control
  * ====================================================================
- * 
- * This is the main admin panel for SurfLog administrators.
+ * * This is the main admin panel for SurfLog administrators.
  * Provides:
  * 1. List of ALL users in the system
  * 2. View information for each user (name, email, level)
@@ -13,8 +12,7 @@
  * 4. Access session history for each user
  * 5. Promote/Demote users (Admin <-> Common)
  * 6. Delete users completely
- * 
- * SECURITY: Only users with is_admin = 1 can access
+ * * SECURITY: Only users with is_admin = 1 can access
  */
 
 // Importa a conexão com o banco de dados
@@ -44,6 +42,77 @@ if (!$user_atual || $user_atual['is_admin'] != 1) {
     exit;
 }
 
+// Lógica de Idioma baseada na sessão
+$lang = $_SESSION['lang'] ?? 'en';
+
+$translations = [
+    'en' => [
+        'nav_title'       => '⚙️ SurfLog Master Admin',
+        'back_app'        => '← Back to App',
+        'logout'          => 'Log out',
+        'panel_title'     => 'User Control Panel',
+        'panel_subtitle'  => 'Manage accounts, boards, sessions and navigation history for any surfer.',
+        'th_name'         => 'Name',
+        'th_email'        => 'Email',
+        'th_level'        => 'Level',
+        'th_manage_data'  => 'Manage Data',
+        'th_actions'      => 'Account Actions',
+        'no_users'        => 'No other users registered.',
+        'badge_admin'     => 'Admin',
+        'badge_user'      => 'User',
+        'btn_boards'      => '🏄‍♂️ Boards',
+        'btn_sessions'    => '🌊 Sessions',
+        'btn_demote'      => '📥 Demote',
+        'btn_promote'     => '👑 Promote',
+        'btn_delete'      => '🗑️ Delete User',
+        'confirm_delete'  => 'CRITICAL WARNING: Deleting this user will permanently remove the account, ALL boards and ALL sessions in the system. Continue?'
+    ],
+    'pt' => [
+        'nav_title'       => '⚙️ SurfLog Admin Master',
+        'back_app'        => '← Voltar ao App',
+        'logout'          => 'Sair',
+        'panel_title'     => 'Painel de Controle de Usuários',
+        'panel_subtitle'  => 'Gerencie contas, pranchas, sessões e histórico de navegação de qualquer surfista.',
+        'th_name'         => 'Nome',
+        'th_email'        => 'E-mail',
+        'th_level'        => 'Nível',
+        'th_manage_data'  => 'Gerenciar Dados',
+        'th_actions'      => 'Ações de Conta',
+        'no_users'        => 'Nenhum outro usuário cadastrado.',
+        'badge_admin'     => 'Admin',
+        'badge_user'      => 'Usuário',
+        'btn_boards'      => '🏄‍♂️ Pranchas',
+        'btn_sessions'    => '🌊 Sessões',
+        'btn_demote'      => '📥 Rebaixar',
+        'btn_promote'     => '👑 Promover',
+        'btn_delete'      => '🗑️ Excluir Usuário',
+        'confirm_delete'  => 'AVISO CRÍTICO: Excluir este usuário removerá permanentemente a conta, TODAS as pranchas e TODAS as sessões no sistema. Continuar?'
+    ],
+    'es' => [
+        'nav_title'       => '⚙️ SurfLog Admin Master',
+        'back_app'        => '← Volver al App',
+        'logout'          => 'Cerrar sesión',
+        'panel_title'     => 'Panel de Control de Usuarios',
+        'panel_subtitle'  => 'Gestione cuentas, tablas, sesiones e historial de navegación de cualquier surfista.',
+        'th_name'         => 'Nombre',
+        'th_email'        => 'Correo electrónico',
+        'th_level'        => 'Nivel',
+        'th_manage_data'  => 'Gestionar Datos',
+        'th_actions'      => 'Acciones de Cuenta',
+        'no_users'        => 'No hay otros usuarios registrados.',
+        'badge_admin'     => 'Admin',
+        'badge_user'      => 'Usuario',
+        'btn_boards'      => '🏄‍♂️ Tablas',
+        'btn_sessions'    => '🌊 Sesiones',
+        'btn_demote'      => '📥 Degradar',
+        'btn_promote'     => '👑 Promover',
+        'btn_delete'      => '🗑️ Eliminar Usuario',
+        'confirm_delete'  => 'ADVERTENCIA CRÍTICA: Eliminar este usuario eliminará permanentemente la cuenta, TODAS las tablas y TODAS las sesiones en el sistema. ¿Continuar?'
+    ]
+];
+
+$txt = $translations[$lang] ?? $translations['en'];
+
 // ============= BUSCAR TODOS OS USUÁRIOS =============
 // Prepara uma query para buscar TODOS os usuários EXCETO o admin logado
 // Ordena alfabeticamente por nome
@@ -52,12 +121,12 @@ $stmt_usuarios = $pdo->prepare("SELECT id, nome, email, is_admin FROM usuarios W
 // Executa a query passando o ID do admin logado (para excluir dele mesmo)
 $stmt_usuarios->execute([$_SESSION['usuario_id']]);
 
-// Obtém todos os resultados como um array de usuarios
+// Obtem todos os resultados como um array de usuarios
 $usuarios = $stmt_usuarios->fetchAll();
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $lang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -98,31 +167,31 @@ $usuarios = $stmt_usuarios->fetchAll();
 <body>
 
     <div class="navbar">
-        <div class="logo">⚙️ SurfLog Master Admin</div>
+        <div class="logo"><?= $txt['nav_title'] ?></div>
         <div class="nav-links">
-            <a href="dashboard.php">← Back to App</a>
-            <a href="logout.php" style="color: #ef4444;">Log out</a>
+            <a href="dashboard.php"><?= $txt['back_app'] ?></a>
+            <a href="logout.php" style="color: #ef4444;"><?= $txt['logout'] ?></a>
         </div>
     </div>
 
     <div class="main-container">
-        <h1>User Control Panel</h1>
-        <p class="subtitle">Manage accounts, boards, sessions and navigation history for any surfer.</p>
+        <h1><?= $txt['panel_title'] ?></h1>
+        <p class="subtitle"><?= $txt['panel_subtitle'] ?></p>
 
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Level</th>
-                    <th>Manage Data</th>
-                    <th>Account Actions</th>
+                    <th><?= $txt['th_name'] ?></th>
+                    <th><?= $txt['th_email'] ?></th>
+                    <th><?= $txt['th_level'] ?></th>
+                    <th><?= $txt['th_manage_data'] ?></th>
+                    <th><?= $txt['th_actions'] ?></th>
                 </tr>
             </thead>
             <tbody>
                 <?php if(empty($usuarios)): ?>
                     <tr>
-                        <td colspan="5" style="text-align: center; color: #94a3b8; padding: 30px;">No other users registered.</td>
+                        <td colspan="5" style="text-align: center; color: #94a3b8; padding: 30px;"><?= $txt['no_users'] ?></td>
                     </tr>
                 <?php else: ?>
                     <?php foreach($usuarios as $user): ?>
@@ -131,26 +200,26 @@ $usuarios = $stmt_usuarios->fetchAll();
                             <td><?= htmlspecialchars($user['email']) ?></td>
                             <td>
                                 <?php if($user['is_admin'] == 1): ?>
-                                    <span class="badge badge-admin">Admin</span>
+                                    <span class="badge badge-admin"><?= $txt['badge_admin'] ?></span>
                                 <?php else: ?>
-                                    <span class="badge badge-user">User</span>
+                                    <span class="badge badge-user"><?= $txt['badge_user'] ?></span>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <div class="btn-group">
-                                    <a href="admin_pranchas.php?usuario_id=<?= $user['id'] ?>" class="btn-action btn-data">🏄‍♂️ Boards</a>
-                                    <a href="admin_sessoes.php?usuario_id=<?= $user['id'] ?>" class="btn-action btn-data">🌊 Sessions</a>
+                                    <a href="admin_pranchas.php?usuario_id=<?= $user['id'] ?>" class="btn-action btn-data"><?= $txt['btn_boards'] ?></a>
+                                    <a href="admin_sessoes.php?usuario_id=<?= $user['id'] ?>" class="btn-action btn-data"><?= $txt['btn_sessions'] ?></a>
                                 </div>
                             </td>
                             <td>
                                 <div class="btn-group">
                                     <a href="admin_acoes.php?action=toggle_role&id=<?= $user['id'] ?>" class="btn-action btn-toggle">
-                                        <?= $user['is_admin'] == 1 ? '📥 Demote' : '👑 Promote' ?>
+                                        <?= $user['is_admin'] == 1 ? $txt['btn_demote'] : $txt['btn_promote'] ?>
                                     </a>
                                     <a href="admin_acoes.php?action=delete_user&id=<?= $user['id'] ?>" 
                                        class="btn-action btn-delete" 
-                                       onclick="return confirm('CRITICAL WARNING: Deleting this user will permanently remove the account, ALL boards and ALL sessions in the system. Continue?')">
-                                        🗑️ Delete User
+                                       onclick="return confirm('<?= addslashes($txt['confirm_delete']) ?>')">
+                                        <?= $txt['btn_delete'] ?>
                                     </a>
                                 </div>
                             </td>

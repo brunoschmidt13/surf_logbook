@@ -4,11 +4,9 @@
  * FILE: salvar_sessao.php
  * PURPOSE: Save New Surf Session (Session Log)
  * ====================================================================
- * 
- * This page receives data of a surf session filled in
+ * * This page receives data of a surf session filled in
  * dashboard form and inserts it in database.
- * 
- * A "surf session" includes:
+ * * A "surf session" includes:
  * - Session date
  * - Duration (in minutes)
  * - Location (state, city, beach)
@@ -31,6 +29,23 @@ if (!isset($_SESSION['usuario_id'])) {
     header("Location: index.php");
     exit; // Stop execution here
 }
+
+// Lógica de Idioma baseada na sessão (Preparada para futuras mensagens de feedback)
+$lang = $_SESSION['lang'] ?? 'en';
+
+$translations = [
+    'en' => [
+        'required_error' => 'Please fill in all required fields.'
+    ],
+    'pt' => [
+        'required_error' => 'Por favor, preencha todos os campos obrigatórios.'
+    ],
+    'es' => [
+        'required_error' => 'Por favor, complete todos los campos obligatorios.'
+    ]
+];
+
+$txt = $translations[$lang] ?? $translations['en'];
 
 // ============= PROCESS FORM SUBMISSION =============
 // Verifies if request was a POST (not GET, PUT, etc)

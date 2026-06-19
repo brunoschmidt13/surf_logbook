@@ -14,6 +14,29 @@ if (!isset($_SESSION['usuario_id'])) {
     exit;
 }
 
+// Lógica de Idioma baseada na sessão
+$lang = $_SESSION['lang'] ?? 'en';
+
+$translations = [
+    'en' => [
+        'none_yet' => 'None yet',
+        'buddy'    => 'Buddy',
+        'title'    => 'TheSurfChronicles - Dashboard'
+    ],
+    'pt' => [
+        'none_yet' => 'Nenhum ainda',
+        'buddy'    => 'Parceiro',
+        'title'    => 'TheSurfChronicles - Painel'
+    ],
+    'es' => [
+        'none_yet' => 'Ninguno aún',
+        'buddy'    => 'Compañero',
+        'title'    => 'TheSurfChronicles - Panel'
+    ]
+];
+
+$txt = $translations[$lang] ?? $translations['en'];
+
 // Control of post-login floating notice
 $exibir_informativo = false;
 if (isset($_SESSION['mostrar_aviso']) && $_SESSION['mostrar_aviso'] === true) {
@@ -60,7 +83,7 @@ $stmt_prancha_top = $pdo->prepare("
 ");
 $stmt_prancha_top->execute([$usuario_id]);
 $prancha_top = $stmt_prancha_top->fetch();
-$prancha_mais_usada = $prancha_top ? $prancha_top['modelo'] : "None yet";
+$prancha_mais_usada = $prancha_top ? $prancha_top['modelo'] : $txt['none_yet'];
 
 $stmt_onda_top = $pdo->prepare("SELECT MAX(altura_onda) as maior_onda FROM sessoes WHERE usuario_id = ?");
 $stmt_onda_top->execute([$usuario_id]);
@@ -118,11 +141,11 @@ $stmt_lista->execute([$usuario_id, $usuario_id, $usuario_id]);
 $lista_amigos = $stmt_lista->fetchAll();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $lang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TheSurfChronicles - Dashboard</title>
+    <title><?= $txt['title'] ?></title>
     <link rel="icon" href="/favicon.ico">
     <link rel="shortcut icon" href="/favicon.ico">
     <style>
@@ -249,7 +272,7 @@ $lista_amigos = $stmt_lista->fetchAll();
             flex-direction: column;
             align-items: flex-end;
             text-align: right;
-            margin-top: 4px; /* Ajuste ligeiramente abaixo mantido */
+            margin-top: 4px;
         }
 
         .user-id-tag {
@@ -270,10 +293,36 @@ $lista_amigos = $stmt_lista->fetchAll();
             color: #ef4444; 
         }
 
-        .main-container { 
-            max-width: 1000px; 
-            margin: 40px auto; 
-            padding: 0 20px; 
+        /* ESTRUTURA GERAL COM WRAPPER DO WRAPPER DE SIDEBAR */
+        .dashboard-layout-wrapper {
+            max-width: 1350px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* AJUSTE RESPONSIVO CASO A TELA SEJA PEQUENA */
+        @media (max-width: 992px) {
+            .dashboard-layout-wrapper {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                margin: 20px auto;
+            }
+        }
+
+        .sidebar-crew-container {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            margin-top: 55px;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
         }
 
         .welcome-section { 
@@ -286,7 +335,7 @@ $lista_amigos = $stmt_lista->fetchAll();
         .welcome-section h1 { 
             margin: 0; 
             font-size: 28px; 
-            color: #0f172a; 
+            color: #282a2c; 
         }
         
         .btn-primary { 
@@ -307,7 +356,7 @@ $lista_amigos = $stmt_lista->fetchAll();
         
         .dashboard-widgets { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
             gap: 20px; 
             margin-bottom: 40px; 
         }
@@ -373,7 +422,7 @@ $lista_amigos = $stmt_lista->fetchAll();
         .section-title { 
             font-size: 14px; 
             text-transform: uppercase; 
-            color: #64748b; 
+            color: #282a2c; 
             font-weight: 700; 
             margin-bottom: 15px; 
             letter-spacing: 0.5px; 
@@ -582,6 +631,222 @@ $lista_amigos = $stmt_lista->fetchAll();
 </head>
 <body>
 
+<?php
+    $more_translations = [
+        'en' => [
+            'friend_accepted' => 'accepted your friend request! You are now surf buddies.',
+            'dismiss' => 'Dismiss',
+            'sent_request' => 'sent you a friend request!',
+            'accept' => 'Accept',
+            'decline' => 'Decline',
+            'whats_new' => "What's New in SurfLog!",
+            'notice_text' => "Hey master! We've rolled out some fresh updates 🌊🔥<br>
+			🤙 New Friend System — Add your friends using their user <strong>ID</strong> and build your surf crew.<br>
+			📊 Crew Dashboard — Follow your friends' sessions and keep up with your crew's progress.<br>
+			🏄‍♂️ Comparison Dashboard — Compare stats, track your evolution, and see who's catching the best waves.<br>
+			Stay connected, push your limits, and enjoy the ride together. Aloha and good waves! 🌊🤙",
+            'got_it' => 'Got it',
+            'admin_panel' => '⚙️ Admin Panel',
+            'logout' => 'Log out ↗',
+            'logbook' => 'Logbook',
+            'hi' => 'Hi',
+            'new_board' => '+ New Board',
+            'new_session' => '+ New Session',
+            'tot_sessions' => 'Total Sessions',
+            'water_time' => 'Water Time',
+            'avg_rating' => 'Average Rating',
+            'longest_session' => 'Longest Session',
+            'most_used_board' => 'Most Used Board',
+            'biggest_wave' => 'Biggest Wave',
+            'crew_buddies' => 'Surf Crew & Buddies',
+            'add_to_crew' => 'Add to Crew',
+            'enter_id' => "Enter a friend's #ID to compare statistics.",
+            'send_request' => 'Request',
+            'my_friends' => 'My Friends',
+            'empty_crew' => 'Crew is empty. Use the input above!',
+            'compare_logs' => '📊 Compare Logs',
+            'my_surfboards' => 'My Surfboards',
+            'no_boards' => 'No boards registered yet.',
+            'size' => 'Size',
+            'volume' => 'Volume',
+            'all_sessions' => 'All Sessions',
+            'no_sessions' => 'No sessions recorded yet.',
+            'none_board' => 'None / Other',
+            'none_f' => 'None',
+            'conditions' => 'Conditions',
+            'rating' => 'Rating',
+            'notes_diary' => 'Notes / Diary',
+            'save_board' => 'Save Board',
+            'log_new_session' => 'Log New Session',
+            'log_session' => 'Log Session',
+            'model' => 'Model',
+            'brand' => 'Brand',
+            'liters' => 'Liters',
+            'date' => 'Date',
+            'duration' => 'Duration (minutes)',
+            'state' => 'State',
+            'city' => 'City',
+            'beach_spot' => 'Beach / Spot',
+            'wave_height' => 'Wave Height (m)',
+            'period' => 'Period (s)',
+            'board_used' => 'Board Used',
+            'session_rating' => 'Session Rating',
+            'placeholder_model' => 'Ex: SF3, Monsta Box',
+            'placeholder_brand' => 'Ex: Tokoro, JS, Pyzel',
+            'placeholder_size' => "Ex: 5'11",
+            'placeholder_volume' => 'Ex: 29.5',
+            'placeholder_duration' => 'Ex: 90',
+            'placeholder_state' => 'Ex: SC',
+            'placeholder_city' => 'Ex: Imbituba',
+            'placeholder_beach' => 'Ex: Rosa Beach (South Corner)',
+            'placeholder_height' => 'Ex: 1.5',
+            'placeholder_period' => 'Ex: 11',
+            'placeholder_rating' => 'From 0.5 to 5.0',
+            'placeholder_notes' => 'How was the wind? And the tide? Big barrels?'
+        ],
+        'pt' => [
+            'friend_accepted' => 'aceitou seu pedido de amizade! Vocês agora são parceiros de surf.',
+            'dismiss' => 'Fechar',
+            'sent_request' => 'te enviou um pedido de amizade!',
+            'accept' => 'Aceitar',
+            'decline' => 'Recusar',
+            'whats_new' => 'Novidades no SurfLog!',
+            'notice_text' => 'E aí, mestre! Acabamos de lançar novas atualizações 🌊🔥<br>
+            🤙 Novo Sistema de Amizades — Adicione seus amigos usando o ID de usuário e monte sua própria surf crew.<br>
+            📊 Dashboard da Crew — Acompanhe as sessões dos seus amigos e veja o progresso da sua galera.<br>
+            🏄‍♂️ Dashboard Comparativa — Compare estatísticas, acompanhe sua evolução e descubra quem está pegando as melhores ondas.<br>
+            Fique conectado, evolua seus limites e aproveite a jornada junto com sua crew. Aloha e boas ondas! 🌊🤙',
+            'got_it' => 'Entendi',
+            'admin_panel' => '⚙️ Painel do Admin',
+            'logout' => 'Sair ↗',
+            'logbook' => 'Diário de Surf',
+            'hi' => 'Olá',
+            'new_board' => '+ Nova Prancha',
+            'new_session' => '+ Nova Sessão',
+            'tot_sessions' => 'Total de Sessões',
+            'water_time' => 'Tempo de Água',
+            'avg_rating' => 'Nota Média',
+            'longest_session' => 'Sessão Mais Longa',
+            'most_used_board' => 'Prancha Mais Usada',
+            'biggest_wave' => 'Maior Onda',
+            'crew_buddies' => 'Equipe e Parceiros',
+            'add_to_crew' => 'Adicionar à Equipe',
+            'enter_id' => 'Insira o #ID de um amigo para comparar estatísticas.',
+            'send_request' => 'Pedir',
+            'my_friends' => 'Meus Amigos',
+            'empty_crew' => 'Sua equipe está vazia. Adicione parceiros acima!',
+            'compare_logs' => '📊 Comparar',
+            'my_surfboards' => 'Minhas Pranchas',
+            'no_boards' => 'Nenhuma prancha registrada ainda.',
+            'size' => 'Tamanho',
+            'volume' => 'Volume',
+            'all_sessions' => 'Todas as Sessões',
+            'no_sessions' => 'Nenhuma sessão gravada ainda.',
+            'none_board' => 'Nenhuma / Outra',
+            'none_f' => 'Nenhuma',
+            'conditions' => 'Condições',
+            'rating' => 'Nota',
+            'notes_diary' => 'Notas / Diário',
+            'save_board' => 'Salvar Prancha',
+            'log_new_session' => 'Registrar Nova Sessão',
+            'log_session' => 'Salvar Sessão',
+            'model' => 'Modelo',
+            'brand' => 'Marca',
+            'liters' => 'Litros',
+            'date' => 'Data',
+            'duration' => 'Duração (minutos)',
+            'state' => 'Estado',
+            'city' => 'Cidade',
+            'beach_spot' => 'Praia / Pico',
+            'wave_height' => 'Altura da Onda (m)',
+            'period' => 'Período (s)',
+            'board_used' => 'Prancha Utilizada',
+            'session_rating' => 'Nota da Sessão',
+            'placeholder_model' => 'Ex: SF3, Monsta Box',
+            'placeholder_brand' => 'Ex: Tokoro, JS, Pyzel',
+            'placeholder_size' => "Ex: 5'11",
+            'placeholder_volume' => 'Ex: 29.5',
+            'placeholder_duration' => 'Ex: 90',
+            'placeholder_state' => 'Ex: SC',
+            'placeholder_city' => 'Ex: Imbituba',
+            'placeholder_beach' => 'Ex: Praia do Rosa (Canto Sul)',
+            'placeholder_height' => 'Ex: 1.5',
+            'placeholder_period' => 'Ex: 11',
+            'placeholder_rating' => 'De 0.5 a 5.0',
+            'placeholder_notes' => 'Como estava o vento? E a maré? Teve tubo?'
+        ],
+        'es' => [
+            'friend_accepted' => 'aceptó tu solicitud de amistad! Ahora son compañeros de surf.',
+            'dismiss' => 'Descartar',
+            'sent_request' => '¡te envió una solicitud de amistad!',
+            'accept' => 'Aceptar',
+            'decline' => 'Rechazar',
+            'whats_new' => '¡Novedades en SurfLog!',
+            'notice_text' => '¡Hola maestro! Hemos actualizado el sistema. Ahora puedes registrar la <strong>Altura de la Ola</strong> y el <strong>Período</strong> en cada sesión, además de seguir nuevos récords directamente en tu panel. ¡Aloha y buenas olas! 🌊🤙',
+            'got_it' => 'Entendido',
+            'admin_panel' => '⚙️ Panel de Admin',
+            'logout' => 'Salir ↗',
+            'logbook' => 'Diario de Surf',
+            'hi' => 'Hola',
+            'new_board' => '+ Nueva Tabla',
+            'new_session' => '+ Nueva Sesión',
+            'tot_sessions' => 'Sesiones Totales',
+            'water_time' => 'Tiempo de Agua',
+            'avg_rating' => 'Nota Media',
+            'longest_session' => 'Sesión Más Larga',
+            'most_used_board' => 'Tabla Más Usada',
+            'biggest_wave' => 'Mayor Ola',
+            'crew_buddies' => 'Equipo y Compañeros',
+            'add_to_crew' => 'Añadir al Equipo',
+            'enter_id' => 'Ingresa el #ID de un amigo.',
+            'send_request' => 'Solicitud',
+            'my_friends' => 'Mis Amigos',
+            'empty_crew' => 'Tu equipo está vacío.',
+            'compare_logs' => '📊 Comparar',
+            'my_surfboards' => 'Mis Tablas',
+            'no_boards' => 'Ninguna tabla registrada aún.',
+            'size' => 'Tamaño',
+            'volume' => 'Volumen',
+            'all_sessions' => 'Todas as Sesiones',
+            'no_sessions' => 'Ninguna sesión grabada aún.',
+            'none_board' => 'Ninguna / Otra',
+            'none_f' => 'Ninguna',
+            'conditions' => 'Condiciones',
+            'rating' => 'Nota',
+            'notes_diary' => 'Notas / Diario',
+            'save_board' => 'Guardar Tabla',
+            'log_new_session' => 'Registrar Nueva Sesión',
+            'log_session' => 'Guardar Sesión',
+            'model' => 'Modelo',
+            'brand' => 'Marca',
+            'liters' => 'Litros',
+            'date' => 'Fecha',
+            'duration' => 'Duración (minutos)',
+            'state' => 'Estado',
+            'city' => 'Ciudad',
+            'beach_spot' => 'Playa / Pico',
+            'wave_height' => 'Altura de Ola (m)',
+            'period' => 'Período (s)',
+            'board_used' => 'Tabla Utilizada',
+            'session_rating' => 'Nota de la Sesión',
+            'placeholder_model' => 'Ej: SF3, Monsta Box',
+            'placeholder_brand' => 'Ej: Tokoro, JS, Pyzel',
+            'placeholder_size' => "Ej: 5'11",
+            'placeholder_volume' => 'Ej: 29.5',
+            'placeholder_duration' => 'Ej: 90',
+            'placeholder_state' => 'Ej: SC',
+            'placeholder_city' => 'Ej: Imbituba',
+            'placeholder_beach' => 'Ej: Playa del Rosa (Canto Sul)',
+            'placeholder_height' => 'Ej: 1.5',
+            'placeholder_period' => 'Ej: 11',
+            'placeholder_rating' => 'De 0.5 a 5.0',
+            'placeholder_notes' => '¿Cómo estuvo el viento? ¿Y la marea? ¿Hubo tubos?'
+        ]
+    ];
+
+    $txt = array_merge($txt, ($more_translations[$lang] ?? $more_translations['en']));
+    ?>
+
     <?php if (isset($_GET['erro'])): ?>
         <div style="background-color: #fef2f2; color: #b91c1c; padding: 12px 20px; text-align: center; font-weight: 600; font-size: 14px; border-bottom: 1px solid #fee2e2; position: relative; z-index: 9999;">
             ⚠️ <?= htmlspecialchars($_GET['erro']) ?>
@@ -595,17 +860,17 @@ $lista_amigos = $stmt_lista->fetchAll();
 
     <?php foreach ($alertas_aceitos as $alerta): ?>
         <div style="background-color: #e0f2fe; color: #0369a1; padding: 12px 20px; text-align: center; font-weight: 600; font-size: 14px; border-bottom: 1px solid #bae6fd; position: relative; z-index: 9998;">
-            🎉 <strong><?= htmlspecialchars($alerta['nome']) ?></strong> accepted your friend request! You are now surf buddies.
-            <a href="acoes_amigo.php?acao=limpar_aviso&id=<?= $alerta['id'] ?>" style="margin-left: 15px; color: #0284c7; text-decoration: underline; font-size: 12px;">Dismiss</a>
+            🎉 <strong><?= htmlspecialchars($alerta['nome']) ?></strong> <?= $txt['friend_accepted'] ?>
+            <a href="acoes_amigo.php?acao=limpar_aviso&id=<?= $alerta['id'] ?>" style="margin-left: 15px; color: #0284c7; text-decoration: underline; font-size: 12px;"><?= $txt['dismiss'] ?></a>
         </div>
     <?php endforeach; ?>
 
     <?php foreach ($pedidos_pendentes as $pedido): ?>
         <div style="background-color: #fffbeb; color: #b45309; padding: 12px 20px; text-align: center; font-weight: 600; font-size: 14px; border-bottom: 1px solid #fef3c7; display: flex; justify-content: center; align-items: center; gap: 15px; position: relative; z-index: 9998;">
-            <span>🤝 <strong><?= htmlspecialchars($pedido['nome']) ?> (#<?= $pedido['amigo_id'] ?>)</strong> sent you a friend request!</span>
+            <span>🤝 <strong><?= htmlspecialchars($pedido['nome']) ?> (#<?= $pedido['amigo_id'] ?>)</strong> <?= $txt['sent_request'] ?></span>
             <div>
-                <a href="acoes_amigo.php?acao=aceitar&id=<?= $pedido['id'] ?>" style="background: #d97706; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; margin-right: 5px;">Accept</a>
-                <a href="acoes_amigo.php?acao=recusar&id=<?= $pedido['id'] ?>" style="background: #cbd5e1; color: #475569; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px;">Decline</a>
+                <a href="acoes_amigo.php?acao=aceitar&id=<?= $pedido['id'] ?>" style="background: #d97706; color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; margin-right: 5px;"><?= $txt['accept'] ?></a>
+                <a href="acoes_amigo.php?acao=recusar&id=<?= $pedido['id'] ?>" style="background: #cbd5e1; color: #475569; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px;"><?= $txt['decline'] ?></a>
             </div>
         </div>
     <?php endforeach; ?>
@@ -614,13 +879,11 @@ $lista_amigos = $stmt_lista->fetchAll();
     <div id="modalInformativoLogin" class="modal-info-login">
         <div class="info-login-content">
             <div style="font-size: 40px; margin-bottom: 15px;">📢</div>
-            <h2>What's New in SurfLog!</h2>
+            <h2><?= $txt['whats_new'] ?></h2>
             <p>
-                Hey master! We've updated the system. Now you can register the 
-                <strong>Wave Height</strong> and <strong>Period</strong> in each session, 
-                plus track new records right on your panel. Aloha and good waves! 🌊🤙
+                <?= $txt['notice_text'] ?>
             </p>
-            <button class="btn-vamos-la" onclick="closeNotice()">Got it</button>
+            <button class="btn-vamos-la" onclick="closeNotice()"><?= $txt['got_it'] ?></button>
         </div>
     </div>
     <?php endif; ?>
@@ -644,231 +907,242 @@ $lista_amigos = $stmt_lista->fetchAll();
             $check_admin = $stmt_check->fetch();
             if ($check_admin && $check_admin['is_admin'] == 1):
             ?>
-                <a href="admin.php" style="color: #ef4444; font-weight: bold; text-decoration: none; margin-right: 15px;">⚙️ Admin Panel</a>
+                <a href="admin.php" style="color: #ef4444; font-weight: bold; text-decoration: none; margin-right: 15px;"><?= $txt['admin_panel'] ?></a>
             <?php endif; ?>
             
             <div class="user-meta-block">
-                <span style="font-weight: 600; color: #1e293b;">@<?= htmlspecialchars($usuario_nome) ?></span>
+                <span style="font-weight: 600; color: #282a2c;">@<?= htmlspecialchars($usuario_nome) ?></span>
                 <span class="user-id-tag">#<?= $usuario_id ?></span>
             </div>
             
-            <a href="logout.php" class="logout-btn">Log out ↗</a>
+            <a href="logout.php" class="logout-btn"><?= $txt['logout'] ?></a>
         </div>
     </div>
 
-    <div class="main-container">
-        <div class="welcome-section">
-            <div>
-                <p style="color: #64748b; margin-bottom: 5px; font-size: 12px; font-weight: 700; text-transform: uppercase;">Logbook</p>
-                <h1>Hi, <?= htmlspecialchars($primeiro_nome) ?></h1>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="openBoardModal()" class="btn-primary" style="background-color: #64748b;">+ New Board</button>
-                <button onclick="openSessionModal()" class="btn-primary">+ New Session</button>
-            </div>
-        </div>
+    <!-- WRAPPER GLOBAL DO DASHBOARD INICIANDO O LAYOUT COM SIDEBAR -->
+    <div class="dashboard-layout-wrapper">
+        
+        <!-- SIDEBAR LATERAL DA ESQUERDA (ÁREA EM VERMELHO DE image_90f525.jpg) -->
+        <div class="sidebar-crew-container">
+            <div class="section-title"><?= $txt['crew_buddies'] ?></div>
+            <div class="content-box" style="padding: 20px;">
+                <div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 4px 0; font-size: 15px; color: #0f172a;"><?= $txt['add_to_crew'] ?></h3>
+                    <p style="margin: 0 0 12px 0; font-size: 12px; color: #64748b;"><?= $txt['enter_id'] ?></p>
+                    <form action="acoes_amigo.php?acao=enviar" method="POST" style="display: flex; gap: 8px; width: 100%; margin:0;">
+                        <input type="number" name="amigo_id" placeholder="Ex: 14" required style="margin:0; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; font-family: inherit; font-size: 13px;">
+                        <button type="submit" class="btn-primary" style="padding: 8px 12px; font-size: 13px;"><?= $txt['send_request'] ?></button>
+                    </form>
+                </div>
 
-        <div class="dashboard-widgets">
-            <div class="widget-card">
-                <div class="widget-icon icon-blue">🏄‍♂️</div>
-                <div class="widget-info">
-                    <div class="widget-label">Total Sessions</div>
-                    <div class="widget-value"><?= $total_sessoes ?></div>
-                </div>
-            </div>
-            <div class="widget-card">
-                <div class="widget-icon icon-blue">⏱️</div>
-                <div class="widget-info">
-                    <div class="widget-label">Water Time</div>
-                    <div class="widget-value"><?= $total_minutos ?> min</div>
-                </div>
-            </div>
-            <div class="widget-card">
-                <div class="widget-icon icon-amber">⭐</div>
-                <div class="widget-info">
-                    <div class="widget-label">Average Rating</div>
-                    <div class="widget-value"><?= $media_nota ?> ★</div>
-                </div>
-            </div>
-            <div class="widget-card">
-                <div class="widget-icon icon-blue">⏳</div>
-                <div class="widget-info">
-                    <div class="widget-label">Longest Session</div>
-                    <div class="widget-value"><?= $maior_sessao ?> min</div>
-                </div>
-            </div>
-            <div class="widget-card">
-                <div class="widget-icon icon-amber">🛹</div>
-                <div class="widget-info">
-                    <div class="widget-label">Most Used Board</div>
-                    <div class="widget-value" style="font-size: 16px; margin-top: 6px;"><?= htmlspecialchars($prancha_mais_usada) ?></div>
-                </div>
-            </div>
-            <div class="widget-card">
-                <div class="widget-icon icon-emerald">🌊</div>
-                <div class="widget-info">
-                    <div class="widget-label">Biggest Wave</div>
-                    <div class="widget-value"><?= number_format($maior_onda, 1, ',', '.') ?> m</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section-title">Surf Crew & Buddies</div>
-        <div class="content-box" style="padding: 25px;">
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <div>
-                    <h3 style="margin: 0 0 4px 0; font-size: 16px; color: #0f172a;">Add to Crew</h3>
-                    <p style="margin: 0; font-size: 13px; color: #64748b;">Enter a friend's #ID to compare statistics and share line-ups.</p>
+                    <h4 style="margin: 0 0 12px 0; font-size: 12px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;"><?= $txt['my_friends'] ?></h4>
+                    <?php if (empty($lista_amigos)): ?>
+                        <p style="color: #64748b; margin: 0; font-size: 13px;"><?= $txt['empty_crew'] ?></p>
+                    <?php else: ?>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <?php foreach ($lista_amigos as $amigo): ?>
+                                <div style="display: flex; flex-direction: column; gap: 8px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                    <div style="font-weight: 600; color: #0f172a; font-size: 14px;">
+                                        👤 <?= htmlspecialchars($amigo['nome']) ?> 
+                                        <span style="font-size: 11px; color: #94a3b8; font-weight: normal; block;">#<?= $amigo['id'] ?></span>
+                                    </div>
+                                    <a href="amigo.php?id=<?= $amigo['id'] ?>" class="btn-primary" style="padding: 6px 10px; font-size: 12px; background-color: #0284c7; text-align: center; display: block; width: 100%; box-sizing: border-box;">
+                                        <?= $txt['compare_logs'] ?>
+                                    </a>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
-                <form action="acoes_amigo.php?acao=enviar" method="POST" style="display: flex; gap: 10px; width: 300px; max-width: 100%; margin:0;">
-                    <input type="number" name="amigo_id" placeholder="Ex: 14" required style="margin:0; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1; font-family: inherit;">
-                    <button type="submit" class="btn-primary" style="padding: 10px 15px;">Send Request</button>
-                </form>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO PRINCIPAL DA DIREITA -->
+        <div class="main-content">
+            <div class="welcome-section">
+                <div>
+                    <p style="color: #282a2c; margin-bottom: 5px; font-size: 12px; font-weight: 700; text-transform: uppercase;"><?= $txt['logbook'] ?></p>
+                    <h1><?= $txt['hi'] ?>, <?= htmlspecialchars($primeiro_nome) ?></h1>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="openBoardModal()" class="btn-primary" style="background-color: #64748b;"><?= $txt['new_board'] ?></button>
+                    <button onclick="openSessionModal()" class="btn-primary"><?= $txt['new_session'] ?></button>
+                </div>
             </div>
 
-            <div>
-                <h4 style="margin: 0 0 12px 0; font-size: 14px; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">My Friends</h4>
-                <?php if (empty($lista_amigos)): ?>
-                    <p style="color: #64748b; margin: 0; font-size: 14px;">Your crew is empty. Use the input above to add buddies!</p>
-                <?php else: ?>
-                    <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <?php foreach ($lista_amigos as $amigo): ?>
-                            <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px 18px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                <div style="font-weight: 600; color: #0f172a;">
-                                    👤 <?= htmlspecialchars($amigo['nome']) ?> 
-                                    <span style="font-size: 11px; color: #94a3b8; font-weight: normal; margin-left: 5px;">#<?= $amigo['id'] ?></span>
-                                </div>
-                                <a href="amigo.php?id=<?= $amigo['id'] ?>" class="btn-primary" style="padding: 6px 12px; font-size: 12px; background-color: #0284c7; display: inline-flex; align-items: center; gap: 5px;">
-                                    📊 Compare Logs
-                                </a>
-                            </div>
-                        <?php endforeach; ?>
+            <!-- STATS WIDGETS -->
+            <div class="dashboard-widgets">
+                <div class="widget-card">
+                    <div class="widget-icon icon-blue">🏄‍♂️</div>
+                    <div class="widget-info">
+                        <div class="widget-label"><?= $txt['tot_sessions'] ?></div>
+                        <div class="widget-value"><?= $total_sessoes ?></div>
                     </div>
+                </div>
+                <div class="widget-card">
+                    <div class="widget-icon icon-blue">⏱️</div>
+                    <div class="widget-info">
+                        <div class="widget-label"><?= $txt['water_time'] ?></div>
+                        <div class="widget-value"><?= $total_minutos ?> min</div>
+                    </div>
+                </div>
+                <div class="widget-card">
+                    <div class="widget-icon icon-amber">⭐</div>
+                    <div class="widget-info">
+                        <div class="widget-label"><?= $txt['avg_rating'] ?></div>
+                        <div class="widget-value"><?= $media_nota ?> ★</div>
+                    </div>
+                </div>
+                <div class="widget-card">
+                    <div class="widget-icon icon-blue">⏳</div>
+                    <div class="widget-info">
+                        <div class="widget-label"><?= $txt['longest_session'] ?></div>
+                        <div class="widget-value"><?= $maior_sessao ?> min</div>
+                    </div>
+                </div>
+                <div class="widget-card">
+                    <div class="widget-icon icon-amber">🛹</div>
+                    <div class="widget-info">
+                        <div class="widget-label"><?= $txt['most_used_board'] ?></div>
+                        <div class="widget-value" style="font-size: 15px; margin-top: 6px;"><?= htmlspecialchars($prancha_mais_usada) ?></div>
+                    </div>
+                </div>
+                <div class="widget-card">
+                    <div class="widget-icon icon-emerald">🌊</div>
+                    <div class="widget-info">
+                        <div class="widget-label"><?= $txt['biggest_wave'] ?></div>
+                        <div class="widget-value"><?= number_format($maior_onda, 1, ',', '.') ?> m</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO DE PRANCHAS -->
+            <div class="section-title"><?= $txt['my_surfboards'] ?></div>
+            <div class="content-box">
+                <?php if (empty($pranchas)): ?>
+                    <p style="color: #64748b; margin: 0;"><?= $txt['no_boards'] ?></p>
+                <?php else: ?>
+                    <?php foreach ($pranchas as $board): ?>
+                        <div class="board-item">
+                            <div class="board-info">
+                                <h3><?= htmlspecialchars($board['marca'] ?? '') ?> - <?= htmlspecialchars($board['modelo']) ?></h3>
+                                <p><?= $txt['size'] ?>: <?= htmlspecialchars($board['tamanho'] ?? '') ?> | <?= $txt['volume'] ?>: <?= htmlspecialchars($board['volume'] ?? '') ?>L</p>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </div>
 
-        </div>
-        <div class="section-title">My Surfboards</div>
-        <div class="content-box">
-            <?php if (empty($pranchas)): ?>
-                <p style="color: #64748b; margin: 0;">No boards registered yet.</p>
-            <?php else: ?>
-                <?php foreach ($pranchas as $board): ?>
-                    <div class="board-item">
-                        <div class="board-info">
-                            <h3><?= htmlspecialchars($board['marca'] ?? '') ?> - <?= htmlspecialchars($board['modelo']) ?></h3>
-                            <p>Tamanho: <?= htmlspecialchars($board['tamanho'] ?? '') ?> | Volume: <?= htmlspecialchars($board['volume'] ?? '') ?>L</p>
+            <!-- SEÇÃO DE SESSÕES -->
+            <div class="section-title"><?= $txt['all_sessions'] ?></div>
+            <div class="content-box">
+                <?php if (empty($sessoes)): ?>
+                    <p style="color: #64748b; margin: 0;"><?= $txt['no_sessions'] ?></p>
+                <?php else: ?>
+                    <?php foreach ($sessoes as $sessao): ?>
+                        <div class="session-item">
+                            <div class="session-meta">
+                                📅 <?= date('d/m/Y', strtotime($sessao['data_sessao'])) ?> | ⏱️ <?= $sessao['duracao_minutos'] ?> min | 🛹 <?= htmlspecialchars($sessao['prancha_modelo'] ?? $txt['none_f']) ?>
+                            </div>
+                            <div class="session-location">
+                                <?= htmlspecialchars($sessao['praia']) ?> <span>- <?= htmlspecialchars($sessao['cidade']) ?>, <?= htmlspecialchars($sessao['estado']) ?></span>
+                            </div>
+                            <div class="session-details">
+                                <strong><?= $txt['conditions'] ?>:</strong> <?= $txt['wave_height'] ?> de <?= number_format($sessao['altura_onda'] ?? 0, 1, ',', '.') ?>m com <?= $sessao['periodo_onda'] ?? 0 ?>s | 
+                                <strong><?= $txt['rating'] ?>:</strong> <?= number_format($sessao['nota'], 1) ?> ★ <br>
+                                <?= htmlspecialchars($sessao['observacoes'] ?? '') ?>
+                            </div>
                         </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
         </div>
 
-        <div class="section-title">All Sessions</div>
-        <div class="content-box">
-            <?php if (empty($sessoes)): ?>
-                <p style="color: #64748b; margin: 0;">No sessions recorded yet.</p>
-            <?php else: ?>
-                <?php foreach ($sessoes as $sessao): ?>
-                    <div class="session-item">
-                        <div class="session-meta">
-                            📅 <?= date('d/m/Y', strtotime($sessao['data_sessao'])) ?> | ⏱️ <?= $sessao['duracao_minutos'] ?> min | 🛹 <?= htmlspecialchars($sessao['prancha_modelo'] ?? 'Nenhuma') ?>
-                        </div>
-                        <div class="session-location">
-                            <?= htmlspecialchars($sessao['praia']) ?> <span>- <?= htmlspecialchars($sessao['cidade']) ?>, <?= htmlspecialchars($sessao['estado']) ?></span>
-                        </div>
-                        <div class="session-details">
-                            <strong>Condições:</strong> Onda de <?= number_format($sessao['altura_onda'] ?? 0, 1, ',', '.') ?>m com <?= $sessao['periodo_onda'] ?? 0 ?>s | 
-                            <strong>Nota:</strong> <?= number_format($sessao['nota'], 1) ?> ★ <br>
-                            <?= htmlspecialchars($sessao['observacoes'] ?? '') ?>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
-    </div>
+    </div> <!-- FIM DO DASHBOARD LAYOUT WRAPPER -->
 
+    <!-- MODAL PRANCHA -->
     <div id="modalPrancha" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeBoardModal()">&times;</span>
-            <h2 style="margin-top:0; color:#0f172a; margin-bottom:20px;">New Board</h2>
+            <h2 style="margin-top:0; color:#0f172a; margin-bottom:20px;"><?= $txt['new_board'] ?></h2>
             <form action="salvar_prancha.php" method="POST" class="form-modal">
-                <label>Model</label>
-                <input type="text" name="modelo" placeholder="Ex: SF3, Monsta Box" required>
+                <label><?= $txt['model'] ?></label>
+                <input type="text" name="modelo" placeholder="<?= $txt['placeholder_model'] ?>" required>
                 
-                <label>Brand</label>
-                <input type="text" name="marca" placeholder="Ex: Tokoro, JS, Pyzel" required>
+                <label><?= $txt['brand'] ?></label>
+                <input type="text" name="marca" placeholder="<?= $txt['placeholder_brand'] ?>" required>
                 
                 <div class="form-grid">
                     <div>
-                        <label>Size</label>
-                        <input type="text" name="tamanho" placeholder="Ex: 5'11" required>
+                        <label><?= $txt['size'] ?></label>
+                        <input type="text" name="tamanho" placeholder="<?= $txt['placeholder_size'] ?>" required>
                     </div>
                     <div>
-                        <label>Volume (Liters)</label>
-                        <input type="text" name="volume" placeholder="Ex: 29.5" required>
+                        <label><?= $txt['volume'] ?> (<?= $txt['liters'] ?>)</label>
+                        <input type="text" name="volume" placeholder="<?= $txt['placeholder_volume'] ?>" required>
                     </div>
                 </div>
                 <input type="hidden" name="medidas" value="">
-                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;">Save Board</button>
+                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;"><?= $txt['save_board'] ?></button>
             </form>
         </div>
     </div>
 
+    <!-- MODAL SESSÃO -->
     <div id="modalSessao" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeSessionModal()">&times;</span>
-            <h2 style="margin-top:0; color:#0f172a; margin-bottom:20px;">Log New Session</h2>
+            <h2 style="margin-top:0; color:#0f172a; margin-bottom:20px;"><?= $txt['log_new_session'] ?></h2>
             <form action="salvar_sessao.php" method="POST" class="form-modal">
                 <div class="form-grid">
                     <div>
-                        <label>Date</label>
+                        <label><?= $txt['date'] ?></label>
                         <input type="date" name="data_sessao" required>
                     </div>
                     <div>
-                        <label>Duration (minutes)</label>
-                        <input type="number" name="duracao_minutos" placeholder="Ex: 90" required>
+                        <label><?= $txt['duration'] ?></label>
+                        <input type="number" name="duracao_minutos" placeholder="<?= $txt['placeholder_duration'] ?>" required>
                     </div>
                     <div>
-                        <label>State</label>
-                        <input type="text" name="estado" placeholder="Ex: SC" required>
+                        <label><?= $txt['state'] ?></label>
+                        <input type="text" name="estado" placeholder="<?= $txt['placeholder_state'] ?>" required>
                     </div>
                     <div>
-                        <label>City</label>
-                        <input type="text" name="cidade" placeholder="Ex: Imbituba" required>
+                        <label><?= $txt['city'] ?></label>
+                        <input type="text" name="cidade" placeholder="<?= $txt['placeholder_city'] ?>" required>
                     </div>
                     <div class="full-width">
-                        <label>Beach / Spot</label>
-                        <input type="text" name="praia" placeholder="Ex: Rosa Beach (South Corner)" required>
+                        <label><?= $txt['beach_spot'] ?></label>
+                        <input type="text" name="praia" placeholder="<?= $txt['placeholder_beach'] ?>" required>
                     </div>
                     <div>
-                        <label>Wave Height (m)</label>
-                        <input type="number" step="0.1" name="altura_onda" placeholder="Ex: 1.5">
+                        <label><?= $txt['wave_height'] ?></label>
+                        <input type="number" step="0.1" name="altura_onda" placeholder="<?= $txt['placeholder_height'] ?>">
                     </div>
                     <div>
-                        <label>Period (s)</label>
-                        <input type="number" name="periodo_onda" placeholder="Ex: 11">
+                        <label><?= $txt['period'] ?></label>
+                        <input type="number" name="periodo_onda" placeholder="<?= $txt['placeholder_period'] ?>">
                     </div>
                     <div class="full-width">
-                        <label>Board Used</label>
+                        <label><?= $txt['board_used'] ?></label>
                         <select name="prancha_id">
-                            <option value="">None / Other</option>
+                            <option value=""><?= $txt['none_board'] ?></option>
                             <?php foreach($pranchas as $b): ?>
                                 <option value="<?= $b['id'] ?>"><?= htmlspecialchars($b['marca'] ?? '') ?> - <?= htmlspecialchars($b['modelo']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                     <div class="full-width">
-                        <label>Session Rating</label>
-                        <input type="number" step="0.5" min="0.5" max="5" name="nota" placeholder="From 0.5 to 5.0" required>
+                        <label><?= $txt['session_rating'] ?></label>
+                        <input type="number" step="0.5" min="0.5" max="5" name="nota" placeholder="<?= $txt['placeholder_rating'] ?>" required>
                     </div>
                     <div class="full-width">
-                        <label>Notes / Diary</label>
-                        <textarea name="observacoes" rows="3" placeholder="How was the wind? And the tide? Big barrels?"></textarea>
+                        <label><?= $txt['notes_diary'] ?></label>
+                        <textarea name="observacoes" rows="3" placeholder="<?= $txt['placeholder_notes'] ?>"></textarea>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;">Log Session</button>
+                <button type="submit" class="btn-primary" style="width:100%; padding:12px; margin-top:10px;"><?= $txt['log_session'] ?></button>
             </form>
         </div>
     </div>

@@ -9,6 +9,26 @@ if (!isset($_SESSION['usuario_id'])) {
     exit;
 }
 
+// Lógica de Idioma baseada na sessão para mensagens de erro/exceção
+$lang = $_SESSION['lang'] ?? 'en';
+
+$translations = [
+    'en' => [
+        'db_error'       => 'Error saving to database: ',
+        'required_fields'=> 'Please fill required fields (Model and Brand).'
+    ],
+    'pt' => [
+        'db_error'       => 'Erro ao salvar no banco de dados: ',
+        'required_fields'=> 'Por favor, preencha os campos obrigatórios (Modelo e Marca).'
+    ],
+    'es' => [
+        'db_error'       => 'Error al guardar en la base de datos: ',
+        'required_fields'=> 'Por favor, complete los campos obligatorios (Modelo y Marca).'
+    ]
+];
+
+$txt = $translations[$lang] ?? $translations['en'];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario_id = $_SESSION['usuario_id'];
     
@@ -38,11 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
         } catch (PDOException $e) {
             // If database error, show what happened (good for testing phase)
-            echo "Error saving to database: " . $e->getMessage();
+            echo $txt['db_error'] . $e->getMessage();
             exit;
         }
     } else {
-        echo "Please fill required fields (Model and Brand).";
+        echo $txt['required_fields'];
         exit;
     }
 } else {

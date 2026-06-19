@@ -14,6 +14,47 @@ if (isset($_SESSION['usuario_id'])) {
     exit;
 }
 
+// Lógica de Idioma baseada na sessão
+$lang = $_SESSION['lang'] ?? 'en';
+
+$translations = [
+    'en' => [
+        'access_denied'   => 'Access denied. Invalid or missing token.',
+        'token_expired'   => 'This recovery token is invalid or has already expired. Please request a new link.',
+        'match_error'     => 'Passwords do not match. Please try again.',
+        'length_error'    => 'The password must be at least 6 characters long.',
+        'title'           => '🔑 New Password',
+        'lbl_new_pass'    => 'Choose a new password',
+        'lbl_conf_pass'   => 'Confirm your new password',
+        'placeholder_len' => 'At least 6 characters',
+        'btn_update'      => 'Update Password'
+    ],
+    'pt' => [
+        'access_denied'   => 'Acesso negado. Token inválido ou ausente.',
+        'token_expired'   => 'Este token de recuperação é inválido ou já expirou. Por favor, solicite um novo link.',
+        'match_error'     => 'As senhas não coincidem. Por favor, tente novamente.',
+        'length_error'    => 'A senha deve ter pelo menos 6 caracteres.',
+        'title'           => '🔑 Nova Senha',
+        'lbl_new_pass'    => 'Escolha uma nova senha',
+        'lbl_conf_pass'   => 'Confirme sua nova senha',
+        'placeholder_len' => 'Pelo menos 6 caracteres',
+        'btn_update'      => 'Atualizar Senha'
+    ],
+    'es' => [
+        'access_denied'   => 'Acceso denegado. Token inválido o ausente.',
+        'token_expired'   => 'Este token de recuperación no es válido o ya ha caducado. Por favor, solicite un nuevo enlace.',
+        'match_error'     => 'Las contraseñas no coinciden. Por favor, inténtelo de nuevo.',
+        'length_error'    => 'La contraseña debe tener al menos 6 caracteres.',
+        'title'           => '🔑 Nueva Contraseña',
+        'lbl_new_pass'    => 'Elija una nueva contraseña',
+        'lbl_conf_pass'   => 'Confirme su nueva contraseña',
+        'placeholder_len' => 'Al menos 6 caracteres',
+        'btn_update'      => 'Actualizar Contraseña'
+    ]
+];
+
+$txt = $translations[$lang] ?? $translations['en'];
+
 $erro = '';
 $sucesso = '';
 
@@ -21,7 +62,7 @@ $sucesso = '';
 $token = filter_input(INPUT_GET, 'token', FILTER_DEFAULT);
 
 if (!$token) {
-    die("Access denied. Invalid or missing token.");
+    die($txt['access_denied']);
 }
 
 // Verifica se o token existe no banco E se a data limite é maior que o momento atual (NOW)
@@ -31,7 +72,7 @@ $usuario = $stmt->fetch();
 
 // Se não achar nada, o token ou está incorreto ou já passou de 1 hora
 if (!$usuario) {
-    die("This recovery token is invalid or has already expired. Please request a new link.");
+    die($txt['token_expired']);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -43,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Criptografa a nova senha gerada
             $nova_senha_hash = password_hash($nova_senha, PASSWORD_DEFAULT);
             
-            // Atualiza a senha no banco e DELETA o token colocando NULL para nunca mais ser reutilizado
+            // box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.35); box-sizing: border-box;
             $stmt_update = $pdo->prepare("UPDATE usuarios SET senha = ?, token_recuperacao = NULL, token_expira_em = NULL WHERE id = ?");
             $stmt_update->execute([$nova_senha_hash, $usuario['id']]);
             
@@ -51,15 +92,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: index.php");
             exit;
         } else {
-            $erro = "Passwords do not match. Please try again.";
+            $erro = $txt['match_error'];
         }
     } else {
-        $erro = "The password must be at least 6 characters long.";
+        $erro = $txt['length_error'];
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $lang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -106,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="main-wrapper">
         <div class="login-card">
             <div class="logo-area">
-                <div class="logo-main">🔑 New Password</div>
+                <div class="logo-main"><?= $txt['title'] ?></div>
             </div>
 
             <?php if (!empty($erro)): ?>
@@ -114,13 +155,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form action="nova_senha.php?token=<?= urlencode($token) ?>" method="POST">
-                <label for="nova_senha">Choose a new password</label>
-                <input type="password" id="nova_senha" name="nova_senha" placeholder="At least 6 characters" required>
+                <label for="nova_senha"><?= $txt['lbl_new_pass'] ?></label>
+                <input type="password" id="nova_senha" name="nova_senha" placeholder="<?= $txt['placeholder_len'] ?>" required>
 
-                <label for="confirma_senha">Confirm your new password</label>
+                <label for="confirma_senha"><?= $txt['lbl_conf_pass'] ?></label>
                 <input type="password" id="confirma_senha" name="confirma_senha" placeholder="••••••••" required>
 
-                <button type="submit" class="btn-submit">Update Password</button>
+                <button type="submit" class="btn-submit"><?= $txt['btn_update'] ?></button>
             </form>
         </div>
     </div>

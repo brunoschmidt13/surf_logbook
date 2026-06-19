@@ -9,6 +9,72 @@
 require_once 'config/conexao.php';
 session_start();
 
+// --- CONTROLE DE IDIOMA (MUDANÇA APENAS PARA SELEÇÃO DE LINGUAGEM) ---
+if (isset($_GET['lang'])) {
+    $_SESSION['lang'] = $_GET['lang'] === 'pt' ? 'pt' : 'en';
+}
+$lang = $_SESSION['lang'] ?? 'en';
+
+$textos = [
+    'en' => [
+        'info_tag' => 'A Minimal Surf Logbook',
+        'info_title' => 'Every session.<br>Every wave.',
+        'info_subtitle' => 'Log your surf sessions with the details that matter — board, break, swell, and how it felt.',
+        'feat_wave_title' => 'Wave detail',
+        'feat_wave_desc' => 'Height, period, quality — capture conditions session to session.',
+        'feat_breaks_title' => 'Breaks',
+        'feat_breaks_desc' => 'Track the beach, city and state for every surf.',
+        'feat_prog_title' => 'Progress',
+        'feat_prog_desc' => 'See your sessions stacked up over time.',
+        'login_tab' => 'Login',
+        'signup_tab' => 'Sign Up',
+        'email_lbl' => 'Email',
+        'pass_lbl' => 'Password',
+        'forgot_lnk' => 'Forgot password?',
+        'login_btn' => 'Log In',
+        'name_lbl' => 'Full Name',
+        'signup_btn' => 'Create Account',
+        'recover_title' => 'Recover Password',
+        'recover_desc' => "Enter your email below. We'll generate a secure token so you can choose a new password.",
+        'recover_lbl' => 'Your Email Address',
+        'recover_btn' => 'Generate Reset Link',
+        'back_login' => '← Back to Login',
+        'reset_title' => '🔑 Choose New Password',
+        'new_pass_lbl' => 'New Password',
+        'conf_pass_lbl' => 'Confirm New Password',
+        'update_btn' => 'Update Password'
+    ],
+    'pt' => [
+        'info_tag' => 'Um Diário de Surf Minimalista',
+        'info_title' => 'Cada sessão.<br>Cada onda.',
+        'info_subtitle' => 'Registre suas sessões de surf com os detalhes que importam — prancha, pico, ondulação e como se sentiu.',
+        'feat_wave_title' => 'Detalhes da onda',
+        'feat_wave_desc' => 'Altura, período, qualidade — capture as condições de sessão para sessão.',
+        'feat_breaks_title' => 'Picos',
+        'feat_breaks_desc' => 'Monitore a praia, cidade e estado de cada queda.',
+        'feat_prog_title' => 'Progresso',
+        'feat_prog_desc' => 'Veja seu histórico de sessões acumular ao longo do tempo.',
+        'login_tab' => 'Entrar',
+        'signup_tab' => 'Cadastrar',
+        'email_lbl' => 'E-mail',
+        'pass_lbl' => 'Senha',
+        'forgot_lnk' => 'Esqueceu a senha?',
+        'login_btn' => 'Entrar',
+        'name_lbl' => 'Nome Completo',
+        'signup_btn' => 'Criar Conta',
+        'recover_title' => 'Recuperar Senha',
+        'recover_desc' => 'Insira seu e-mail abaixo. Geraremos um token seguro para que você possa escolher uma nova senha.',
+        'recover_lbl' => 'Seu Endereço de E-mail',
+        'recover_btn' => 'Gerar Link de Recuperação',
+        'back_login' => '← Voltar para o Login',
+        'reset_title' => '🔑 Escolha a Nova Senha',
+        'new_pass_lbl' => 'Nova Senha',
+        'conf_pass_lbl' => 'Confirmar Nova Senha',
+        'update_btn' => 'Atualizar Senha'
+    ]
+];
+// --------------------------------------------------------------------
+
 // Se o usuário já estiver logado, joga para a dashboard
 if (isset($_SESSION['usuario_id'])) {
     header("Location: dashboard.php");
@@ -44,39 +110,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 1. AÇÃO: CADASTRAR
     if ($acao === 'cadastrar') {
-        $modo = 'register'; // Mantém a aba ativa se der erro
+        $modo = 'register'; // Mantém a aba activa se der erro
         $nome = filter_input(INPUT_POST, 'nome', FILTER_SANITIZE_SPECIAL_CHARS);
-        
-        // Sanitiza e força o e-mail a ficar totalmente em letras minúsculas e sem espaços
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        if ($email) {
-            $email = strtolower(trim($email));
-        }
-        
         $senha = $_POST['senha'];
 
         if ($nome && $email && $senha) {
-            // VALIDAÇÃO CRÍTICA: Verifica se o e-mail já existe na tabela de usuários
-            $stmt_check = $pdo->prepare("SELECT id FROM usuarios WHERE LOWER(email) = ?");
+            $stmt_check = $pdo->prepare("SELECT id FROM usuarios WHERE email = ?");
             $stmt_check->execute([$email]);
             
             if ($stmt_check->rowCount() > 0) {
-                // Se encontrar qualquer registro, bloqueia o cadastro imediatamente
                 $erro = "This email is already registered. Try logging in!";
             } else {
-                // Se estiver livre, prossegue com a criptografia e inserção
                 $senha_hash = password_hash($senha, PASSWORD_DEFAULT);
                 try {
                     $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
                     $stmt->execute([$nome, $email, $senha_hash]);
                     $sucesso = "Account created successfully! Please log in.";
-                    $modo = 'login'; // Muda a interface dinamicamente para o login
+                    $modo = 'login'; // Muda para o login
                 } catch (PDOException $e) {
                     $erro = "An error occurred. Please try again.";
                 }
             }
         } else {
-            $erro = "Please fill all fields correctly with a valid email.";
+            $erro = "Please fill all fields correctly.";
         }
     } 
     
@@ -84,13 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($acao === 'login') {
         $modo = 'login';
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        if ($email) {
-            $email = strtolower(trim($email));
-        }
         $senha = $_POST['senha'];
 
         if ($email && $senha) {
-            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE LOWER(email) = ?");
+            $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
             $stmt->execute([$email]);
             $usuario = $stmt->fetch();
 
@@ -112,12 +166,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($acao === 'solicitar_recuperacao') {
         $modo = 'forgot';
         $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        if ($email) {
-            $email = strtolower(trim($email));
-        }
 
         if ($email) {
-            $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE LOWER(email) = ?");
+            $stmt = $pdo->prepare("SELECT id FROM usuarios WHERE email = ?");
             $stmt->execute([$email]);
             $usuario = $stmt->fetch();
 
@@ -128,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt_update = $pdo->prepare("UPDATE usuarios SET token_recuperacao = ?, token_expira_em = ? WHERE id = ?");
                 $stmt_update->execute([$token, $expira, $usuario['id']]);
                 
-                // O link agora aponta para o PRÓPRIO arquivo index.php passando o token por GET de forma dinâmica
+                // O link agora aponta para o PRÓPRIO arquivo index.php passando o token por GET
                 $protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
                 $url_atual = $protocolo . $_SERVER['HTTP_HOST'] . $_SERVER['SCRIPT_NAME'];
                 $link = $url_atual . "?token=" . $token;
@@ -163,7 +214,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt_update = $pdo->prepare("UPDATE usuarios SET senha = ?, token_recuperacao = NULL, token_expira_em = NULL WHERE id = ?");
                     $stmt_update->execute([$nova_senha_hash, $usuario_confirmado['id']]);
                     
-                    $sucesso = "Password updated successfully! You can log in now.";
+                    $sucesso = "Password updated successfully!<br> You can log in now.";
                     $modo = 'login';
                 } else {
                     $erro = "Passwords do not match.";
@@ -179,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $lang ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -220,10 +271,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 40px 35px; border-radius: 16px; width: 100%; max-width: 380px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.35); box-sizing: border-box;
         }
-        .logo-area { text-align: center; margin-bottom: 30px; }
+        .logo-area { text-align: center; margin-bottom: 30px; position: relative; }
         .logo-main { font-size: 28px; font-weight: 800; color: #0284c7; }
         .logo-sub { margin-top: 4px; margin-left: 12px; font-size: 12px; letter-spacing: 7px; text-transform: uppercase; color: rgba(255, 255, 255, 0.55); line-height: 1; }
         
+        /* Chaves de idioma mantendoc layout */
+        .lang-switcher { position: absolute; top: -25px; right: 0; font-size: 12px; }
+        .lang-switcher a { color: #0f172a; text-decoration: none; font-weight: bold; margin-left: 5px; }
+        .lang-switcher a:hover { text-decoration: underline; }
+
         .tabs { display: flex; border-bottom: 2px solid rgba(0, 0, 0, 0.08); margin-bottom: 25px; }
         .tab-btn { flex: 1; text-align: center; padding: 10px 0; background: none; border: none; font-size: 15px; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s ease; }
         .tab-btn.active { color: #0084b4; border-bottom: 2px solid #0084b4; margin-bottom: -2px; }
@@ -266,25 +322,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="main-wrapper">
         <div class="info-column">
-            <div class="info-tag">A Minimal Surf Logbook</div>
-            <h1 class="info-title">Every session.<br>Every wave.</h1>
-            <p class="info-subtitle">Log your surf sessions with the details that matter — board, break, swell, and how it felt.</p>
+            <div class="info-tag"><?= $textos[$lang]['info_tag'] ?></div>
+            <h1 class="info-title"><?= $textos[$lang]['info_title'] ?></h1>
+            <p class="info-subtitle"><?= $textos[$lang]['info_subtitle'] ?></p>
             
             <div class="features-grid">
                 <div class="feature-card">
                     <div class="feature-icon">🌊</div>
-                    <h3>Wave detail</h3>
-                    <p>Height, period, quality — capture conditions session to session.</p>
+                    <h3><?= $textos[$lang]['feat_wave_title'] ?></h3>
+                    <p><?= $textos[$lang]['feat_wave_desc'] ?></p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📍</div>
-                    <h3>Breaks</h3>
-                    <p>Track the beach, city and state for every surf.</p>
+                    <h3><?= $textos[$lang]['feat_breaks_title'] ?></h3>
+                    <p><?= $textos[$lang]['feat_breaks_desc'] ?></p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📈</div>
-                    <h3>Progress</h3>
-                    <p>See your sessions stacked up over time.</p>
+                    <h3><?= $textos[$lang]['feat_prog_title'] ?></h3>
+                    <p><?= $textos[$lang]['feat_prog_desc'] ?></p>
                 </div>
             </div>
         </div>
@@ -292,6 +348,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="form-column">
             <div class="login-card">
                 <div class="logo-area">
+                    <div class="lang-switcher">
+                        <a href="?lang=pt">🇧🇷 PT</a> | <a href="?lang=en">🇺🇸 EN</a>
+                    </div>
                     <div class="logo-main">🌊 The Surf</div>
                     <div class="logo-sub">CHRONICLES</div>
                 </div>
@@ -305,25 +364,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <?php if ($modo === 'login' || $modo === 'register'): ?>
                     <div class="tabs">
-                        <button class="tab-btn <?= $modo === 'login' ? 'active' : '' ?>" onclick="switchTab('login')">Login</button>
-                        <button class="tab-btn <?= $modo === 'register' ? 'active' : '' ?>" onclick="switchTab('register')">Sign Up</button>
+                        <button class="tab-btn <?= $modo === 'login' ? 'active' : '' ?>" onclick="switchTab('login')"><?= $textos[$lang]['login_tab'] ?></button>
+                        <button class="tab-btn <?= $modo === 'register' ? 'active' : '' ?>" onclick="switchTab('register')"><?= $textos[$lang]['signup_tab'] ?></button>
                     </div>
 
                     <div id="form-login" class="form-content <?= $modo === 'login' ? 'active' : '' ?>">
                         <form action="index.php?modo=login" method="POST">
                             <input type="hidden" name="acao" value="login">
                             
-                            <label for="email_login">Email</label>
+                            <label for="email_login"><?= $textos[$lang]['email_lbl'] ?></label>
                             <input type="email" id="email_login" name="email" placeholder="your@email.com" required>
 
-                            <label for="senha_login">Password</label>
+                            <label for="senha_login"><?= $textos[$lang]['pass_lbl'] ?></label>
                             <input type="password" id="senha_login" name="senha" placeholder="••••••••" required>
 
                             <div class="forgot-password-wrapper">
-                                <a href="index.php?modo=forgot" class="forgot-password-link">Forgot password?</a>
+                                <a href="index.php?modo=forgot" class="forgot-password-link"><?= $textos[$lang]['forgot_lnk'] ?></a>
                             </div>
 
-                            <button type="submit" class="btn-submit">Log In</button>
+                            <button type="submit" class="btn-submit"><?= $textos[$lang]['login_btn'] ?></button>
                         </form>
                     </div>
 
@@ -331,16 +390,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form action="index.php?modo=register" method="POST">
                             <input type="hidden" name="acao" value="cadastrar">
 
-                            <label for="nome_cad">Full Name</label>
+                            <label for="nome_cad"><?= $textos[$lang]['name_lbl'] ?></label>
                             <input type="text" id="nome_cad" name="nome" placeholder="Ex: Bruno Schmidt" required>
                             
-                            <label for="email_cad">Email</label>
+                            <label for="email_cad"><?= $textos[$lang]['email_lbl'] ?></label>
                             <input type="email" id="email_cad" name="email" placeholder="your@email.com" required>
 
-                            <label for="senha_cad">Password</label>
+                            <label for="senha_cad"><?= $textos[$lang]['pass_lbl'] ?></label>
                             <input type="password" id="senha_cad" name="senha" placeholder="Create a strong password" required>
 
-                            <button type="submit" class="btn-submit">Create Account</button>
+                            <button type="submit" class="btn-submit"><?= $textos[$lang]['signup_btn'] ?></button>
                         </form>
                     </div>
                 <?php endif; ?>
@@ -350,14 +409,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <form action="index.php?modo=forgot" method="POST">
                             <input type="hidden" name="acao" value="solicitar_recuperacao">
                             
-                            <div class="card-desc" style="text-align: center; font-weight: bold; font-size: 15px; margin-bottom: 5px;">Recover Password</div>
-                            <div class="card-desc">Enter your email below. We'll generate a secure token so you can choose a new password.</div>
+                            <div class="card-desc" style="text-align: center; font-weight: bold; font-size: 15px; margin-bottom: 5px;"><?= $textos[$lang]['recover_title'] ?></div>
+                            <div class="card-desc"><?= $textos[$lang]['recover_desc'] ?></div>
                             
-                            <label for="email_forgot">Your Email Address</label>
+                            <label for="email_forgot"><?= $textos[$lang]['recover_lbl'] ?></label>
                             <input type="email" id="email_forgot" name="email" placeholder="your@email.com" required>
 
-                            <button type="submit" class="btn-submit">Generate Reset Link</button>
-                            <a href="index.php?modo=login" class="back-link">← Back to Login</a>
+                            <button type="submit" class="btn-submit"><?= $textos[$lang]['recover_btn'] ?></button>
+                            <a href="index.php?modo=login" class="back-link"><?= $textos[$lang]['back_login'] ?></a>
                         </form>
                     </div>
                 <?php endif; ?>
@@ -368,15 +427,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <input type="hidden" name="acao" value="atualizar_senha">
                             <input type="hidden" name="token_confirmacao" value="<?= htmlspecialchars($token_url) ?>">
                             
-                            <div class="card-desc" style="text-align: center; font-weight: bold; font-size: 15px; margin-bottom: 10px;">🔑 Choose New Password</div>
+                            <div class="card-desc" style="text-align: center; font-weight: bold; font-size: 15px; margin-bottom: 10px;"><?= $textos[$lang]['reset_title'] ?></div>
                             
-                            <label for="nova_senha">New Password</label>
+                            <label for="nova_senha"><?= $textos[$lang]['new_pass_lbl'] ?></label>
                             <input type="password" id="nova_senha" name="nova_senha" placeholder="At least 6 characters" required>
 
-                            <label for="confirma_senha">Confirm New Password</label>
+                            <label for="confirma_senha"><?= $textos[$lang]['conf_pass_lbl'] ?></label>
                             <input type="password" id="confirma_senha" name="confirma_senha" placeholder="••••••••" required>
 
-                            <button type="submit" class="btn-submit btn-green">Update Password</button>
+                            <button type="submit" class="btn-submit btn-green"><?= $textos[$lang]['update_btn'] ?></button>
                         </form>
                     </div>
                 <?php endif; ?>

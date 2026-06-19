@@ -4,19 +4,16 @@
  * FILE: admin_sessoes.php
  * PURPOSE: View and Manage Surf Sessions of a User
  * ====================================================================
- * 
- * This page allows admin to:
+ * * This page allows admin to:
  * 1. See ALL surf sessions of a specific user
  * 2. View complete details of each session
  * 3. Delete individual sessions from history
- * 
- * Flow:
+ * * Flow:
  * 1. Admin clicks "Sessions" of a user in admin.php
  * 2. Gets redirected to admin_sessoes.php?usuario_id=123
  * 3. Sees table with history of all sessions of that user
  * 4. Can delete sessions via action in table
- * 
- * SECURITY: Requires being admin AND providing valid user ID
+ * * SECURITY: Requires being admin AND providing valid user ID
  */
 
 // Imports database connection
@@ -42,6 +39,59 @@ if (!$user_atual || $user_atual['is_admin'] != 1) {
     header("Location: dashboard.php");
     exit;
 }
+
+// Lógica de Idioma baseada na sessão
+$lang = $_SESSION['lang'] ?? 'en';
+
+$translations = [
+    'en' => [
+        'page_title'      => 'Admin - Sessions of',
+        'back_panel'      => '← Back to Panel',
+        'surf_history'    => 'Surf History:',
+        'no_sessions'     => 'This user has not recorded any surf sessions yet.',
+        'th_date'         => 'Date',
+        'th_location'     => 'Location',
+        'th_duration'     => 'Duration',
+        'th_board'        => 'Board',
+        'th_rating'       => 'Rating',
+        'th_action'       => 'Action',
+        'none'            => 'None',
+        'delete'          => 'Delete',
+        'confirm_delete'  => 'Are you sure you want to delete this surf session from user history?'
+    ],
+    'pt' => [
+        'page_title'      => 'Admin - Sessões de',
+        'back_panel'      => '← Voltar ao Painel',
+        'surf_history'    => 'Histórico de Surf:',
+        'no_sessions'     => 'Este usuário ainda não registrou nenhuma sessão de surf.',
+        'th_date'         => 'Data',
+        'th_location'     => 'Localização',
+        'th_duration'     => 'Duração',
+        'th_board'        => 'Prancha',
+        'th_rating'       => 'Nota',
+        'th_action'       => 'Ação',
+        'none'            => 'Nenhuma',
+        'delete'          => 'Excluir',
+        'confirm_delete'  => 'Tem certeza de que deseja excluir esta sessão de surf do histórico do usuário?'
+    ],
+    'es' => [
+        'page_title'      => 'Admin - Sesiones de',
+        'back_panel'      => '← Volver al Panel',
+        'surf_history'    => 'Historial de Surf:',
+        'no_sessions'     => 'Este usuario aún no ha registrado ninguna sesión de surf.',
+        'th_date'         => 'Fecha',
+        'th_location'     => 'Ubicación',
+        'th_duration'     => 'Duración',
+        'th_board'        => 'Tabla',
+        'th_rating'       => 'Nota',
+        'th_action'       => 'Acción',
+        'none'            => 'Ninguna',
+        'delete'          => 'Eliminar',
+        'confirm_delete'  => '¿Estás seguro de que deseas eliminar esta sesión de surf del historial del usuario?'
+    ]
+];
+
+$txt = $translations[$lang] ?? $translations['en'];
 
 // ============= VALIDATE TARGET USER ID =============
 // Gets and validates ID of user whose sessions we want to see
@@ -90,10 +140,10 @@ $sessoes = $stmt_sessoes->fetchAll();
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $lang ?>">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - Sessions of <?= htmlspecialchars($usuario_alvo['nome']) ?></title>
+    <title><?= $txt['page_title'] ?> <?= htmlspecialchars($usuario_alvo['nome']) ?></title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f1f5f9; margin: 0; padding: 40px; }
         .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
@@ -112,24 +162,24 @@ $sessoes = $stmt_sessoes->fetchAll();
 
     <div class="header-area">
         <div>
-            <a href="admin.php" class="btn-back">← Back to Panel</a>
-            <h1 style="margin-top:15px;">Surf History: <?= htmlspecialchars($usuario_alvo['nome']) ?></h1>
+            <a href="admin.php" class="btn-back"><?= $txt['back_panel'] ?></a>
+            <h1 style="margin-top:15px;"><?= $txt['surf_history'] ?> <?= htmlspecialchars($usuario_alvo['nome']) ?></h1>
         </div>
     </div>
 
     <?php if(empty($sessoes)): ?>
-        <p style="color: #64748b;">This user has not recorded any surf sessions yet.</p>
+        <p style="color: #64748b;"><?= $txt['no_sessions'] ?></p>
     <?php else: ?>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Location</th>
-                        <th>Duration</th>
-                        <th>Board</th>
-                        <th>Rating</th>
-                        <th>Action</th>
+                        <th><?= $txt['th_date'] ?></th>
+                        <th><?= $txt['th_location'] ?></th>
+                        <th><?= $txt['th_duration'] ?></th>
+                        <th><?= $txt['th_board'] ?></th>
+                        <th><?= $txt['th_rating'] ?></th>
+                        <th><?= $txt['th_action'] ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -141,11 +191,11 @@ $sessoes = $stmt_sessoes->fetchAll();
                                 <?= htmlspecialchars($s['cidade']) ?>/<?= htmlspecialchars($s['estado']) ?>
                             </td>
                             <td><?= $s['duracao_minutos'] ?> min</td>
-                            <td><?= $s['prancha_nome'] ? htmlspecialchars($s['prancha_nome']) : '<span style="color:#94a3b8;">None</span>' ?></td>
+                            <td><?= $s['prancha_nome'] ? htmlspecialchars($s['prancha_nome']) : '<span style="color:#94a3b8;">' . $txt['none'] . '</span>' ?></td>
                             <td>⭐ <?= number_format($s['nota'], 1) ?></td>
                             <td>
                                 <a href="admin_sessoes.php?usuario_id=<?= $usuario_alvo_id ?>&deletar_sessao=<?= $s['id'] ?>" 
-                                   class="btn-del" onclick="return confirm('Are you sure you want to delete this surf session from user history?')">Delete</a>
+                                   class="btn-del" onclick="return confirm('<?= addslashes($txt['confirm_delete']) ?>')"><?= $txt['delete'] ?></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
